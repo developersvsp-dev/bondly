@@ -8,7 +8,7 @@ import android.widget.Toast;
 
 import com.android.billingclient.api.*;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -16,7 +16,8 @@ public class MainActivity extends AppCompatActivity {
     private BillingClient billingClient;
     private ProductDetails productDetails;
 
-    private static final String PRODUCT_ID = "monthly_premium";
+    // Subscription product ID from Play Console
+    private static final String SUBSCRIPTION_PRODUCT_ID = "monthly_premium";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,12 +30,12 @@ public class MainActivity extends AppCompatActivity {
         // 1️⃣ Setup Billing Client
         // -------------------------------
         billingClient = BillingClient.newBuilder(this)
+                .setListener(purchasesUpdatedListener)
                 .enablePendingPurchases(
                         PendingPurchasesParams.newBuilder()
-                                .enableOneTimeProducts()
+                                .enableOneTimeProducts() // or enableSubscriptionProducts() for clarity
                                 .build()
                 )
-                .setListener(purchasesUpdatedListener)
                 .build();
 
         // -------------------------------
@@ -45,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
             public void onBillingSetupFinished(BillingResult billingResult) {
                 if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                     Log.d("IAP", "Billing connected!");
-                    queryProduct();
+                    querySubscriptionProduct();
                 } else {
                     Log.e("IAP", "Billing setup failed: " + billingResult.getDebugMessage());
                 }
@@ -62,66 +63,77 @@ public class MainActivity extends AppCompatActivity {
         // -------------------------------
         buyBtn.setOnClickListener(v -> {
             if (productDetails != null) {
-                startPurchase();
+                startSubscriptionPurchase();
             } else {
-                Toast.makeText(this, "Product not loaded yet", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Subscription not loaded yet", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     // -------------------------------
-    // 4️⃣ Query Product
+    // 4️⃣ Query Subscription Product
     // -------------------------------
-    private void queryProduct() {
+    private void querySubscriptionProduct() {
 
-        List<QueryProductDetailsParams.Product> productList = new ArrayList<>();
-        productList.add(
+        QueryProductDetailsParams.Product product =
                 QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(PRODUCT_ID)
-                        .setProductType(BillingClient.ProductType.INAPP)
-                        .build()
-        );
+                        .setProductId(SUBSCRIPTION_PRODUCT_ID)
+                        .setProductType(BillingClient.ProductType.SUBS)
+                        .build();
 
         QueryProductDetailsParams params =
                 QueryProductDetailsParams.newBuilder()
-                        .setProductList(productList)
+                        .setProductList(Collections.singletonList(product))
                         .build();
 
-        billingClient.queryProductDetailsAsync(params, new ProductDetailsResponseListener() {
-            @Override
-            public void onProductDetailsResponse(BillingResult billingResult, QueryProductDetailsResult result) {
+        billingClient.queryProductDetailsAsync(params, (billingResult, result) -> {
 
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
-                        && result.getProductDetailsList() != null
-                        && !result.getProductDetailsList().isEmpty()) {
-
-                    productDetails = result.getProductDetailsList().get(0);
-                    Log.d("IAP", "Product fetched: " + productDetails.getName());
-
-                } else {
-                    Log.e("IAP", "❌ Product not found on Play Console!");
-                }
+            if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
+                Log.e("IAP", "Query failed: " + billingResult.getDebugMessage());
+                return;
             }
+
+            List<ProductDetails> list = result.getProductDetailsList();
+
+            if (list.isEmpty()) {
+                Log.e("IAP", "❌ Subscription not found. Check Play Console product ID.");
+                return;
+            }
+
+            productDetails = list.get(0);
+            Log.d("IAP", "Subscription fetched: " + productDetails.getName());
         });
     }
 
     // -------------------------------
-    // 5️⃣ Start Purchase Flow
+    // 5️⃣ Start Subscription Purchase Flow
     // -------------------------------
-    private void startPurchase() {
+    private void startSubscriptionPurchase() {
+
+        // For subscriptions, we need the offer token from the base plan
+        List<ProductDetails.SubscriptionOfferDetails> offerDetailsList =
+                productDetails.getSubscriptionOfferDetails();
+
+        if (offerDetailsList == null || offerDetailsList.isEmpty()) {
+            Log.e("IAP", "No subscription offer found!");
+            return;
+        }
+
+        ProductDetails.SubscriptionOfferDetails offerDetails = offerDetailsList.get(0);
 
         BillingFlowParams.ProductDetailsParams productDetailsParams =
                 BillingFlowParams.ProductDetailsParams.newBuilder()
                         .setProductDetails(productDetails)
+                        .setOfferToken(offerDetails.getOfferToken())
                         .build();
 
         BillingFlowParams flowParams =
                 BillingFlowParams.newBuilder()
-                        .setProductDetailsParamsList(List.of(productDetailsParams))
+                        .setProductDetailsParamsList(Collections.singletonList(productDetailsParams))
                         .build();
 
         BillingResult result = billingClient.launchBillingFlow(this, flowParams);
-        Log.d("IAP", "Purchase launched: " + result.getDebugMessage());
+        Log.d("IAP", "Subscription purchase launched: " + result.getDebugMessage());
     }
 
     // -------------------------------
@@ -159,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
 
                 billingClient.acknowledgePurchase(acknowledgePurchaseParams, billingResult -> {
                     if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                        Toast.makeText(MainActivity.this, "Premium Unlocked!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "Subscription active!", Toast.LENGTH_SHORT).show();
                         Log.d("IAP", "Purchase acknowledged");
                     }
                 });
