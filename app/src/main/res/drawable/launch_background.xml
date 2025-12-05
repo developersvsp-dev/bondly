@@ -1,0 +1,11 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Orange background -->
+    <item android:drawable="@color/splash_background"/>
+
+    <!-- Centered logo -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/life"/>
+    </item>
+</layer-list>

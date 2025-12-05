@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -10,8 +11,8 @@ android {
         applicationId "com.vaibhav.bondly"
         minSdk 24
         targetSdk 36
-        versionCode 2
-        versionName "1.1"
+        versionCode 3
+        versionName "1.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,4 +41,10 @@ dependencies {
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
     implementation 'com.android.billingclient:billing:8.1.0'
+    implementation 'com.google.firebase:firebase-firestore:24.10.0'
+    implementation platform('com.google.firebase:firebase-bom:34.6.0')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation("com.google.firebase:firebase-analytics")
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'com.google.android.material:material:1.10.0'
 }

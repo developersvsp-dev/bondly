@@ -1,181 +1,84 @@
 package com.vaibhav.bondly;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
-import android.widget.Button;
-import android.widget.Toast;
 
-import com.android.billingclient.api.*;
-
-import java.util.Collections;
-import java.util.List;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class MainActivity extends AppCompatActivity {
-
-    private BillingClient billingClient;
-    private ProductDetails productDetails;
-
-    // Subscription product ID from Play Console
-    private static final String SUBSCRIPTION_PRODUCT_ID = "monthly_premium";
+    private static final String TAG = "MainActivity";
+    private BottomNavigationView bottomNavigation;
+    private FirebaseAuth mAuth;
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private boolean isAuthChecked = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button buyBtn = findViewById(R.id.btnBuyPremium);
+        mAuth = FirebaseAuth.getInstance();
 
-        // -------------------------------
-        // 1️⃣ Setup Billing Client
-        // -------------------------------
-        billingClient = BillingClient.newBuilder(this)
-                .setListener(purchasesUpdatedListener)
-                .enablePendingPurchases(
-                        PendingPurchasesParams.newBuilder()
-                                .enableOneTimeProducts() // or enableSubscriptionProducts() for clarity
-                                .build()
-                )
-                .build();
+        if (!isAuthChecked) {
+            checkAuthState();
+            isAuthChecked = true;
+        }
+    }
 
-        // -------------------------------
-        // 2️⃣ Start Billing Connection
-        // -------------------------------
-        billingClient.startConnection(new BillingClientStateListener() {
-            @Override
-            public void onBillingSetupFinished(BillingResult billingResult) {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    Log.d("IAP", "Billing connected!");
-                    querySubscriptionProduct();
-                } else {
-                    Log.e("IAP", "Billing setup failed: " + billingResult.getDebugMessage());
-                }
-            }
-
-            @Override
-            public void onBillingServiceDisconnected() {
-                Log.e("IAP", "Billing disconnected!");
-            }
-        });
-
-        // -------------------------------
-        // 3️⃣ Buy Button Click
-        // -------------------------------
-        buyBtn.setOnClickListener(v -> {
-            if (productDetails != null) {
-                startSubscriptionPurchase();
+    private void checkAuthState() {
+        handler.postDelayed(() -> {
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+            if (currentUser != null) {
+                Log.d(TAG, "User logged in: " + currentUser.getUid());
+                setupBottomNavigation();
             } else {
-                Toast.makeText(this, "Subscription not loaded yet", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "No user found, redirecting to login");
+                goToLoginActivity();
             }
+        }, 1000);
+    }
+
+    private void setupBottomNavigation() {
+        bottomNavigation = findViewById(R.id.bottom_navigation);
+
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            Fragment fragment = null;
+            int id = item.getItemId();
+
+            if (id == R.id.nav_feed) fragment = new FeedFragment();
+            else if (id == R.id.nav_inbox) fragment = new InboxFragment();
+            else if (id == R.id.nav_profile) fragment = new ProfileFragment();
+            else if (id == R.id.nav_settings) fragment = new SettingsFragment();
+
+            if (fragment != null) loadFragment(fragment);
+            return true;
         });
+
+        if (getSupportFragmentManager().getFragments().isEmpty()) {
+            bottomNavigation.setSelectedItemId(R.id.nav_feed);
+            loadFragment(new FeedFragment());
+        }
     }
 
-    // -------------------------------
-    // 4️⃣ Query Subscription Product
-    // -------------------------------
-    private void querySubscriptionProduct() {
-
-        QueryProductDetailsParams.Product product =
-                QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(SUBSCRIPTION_PRODUCT_ID)
-                        .setProductType(BillingClient.ProductType.SUBS)
-                        .build();
-
-        QueryProductDetailsParams params =
-                QueryProductDetailsParams.newBuilder()
-                        .setProductList(Collections.singletonList(product))
-                        .build();
-
-        billingClient.queryProductDetailsAsync(params, (billingResult, result) -> {
-
-            if (billingResult.getResponseCode() != BillingClient.BillingResponseCode.OK) {
-                Log.e("IAP", "Query failed: " + billingResult.getDebugMessage());
-                return;
-            }
-
-            List<ProductDetails> list = result.getProductDetailsList();
-
-            if (list.isEmpty()) {
-                Log.e("IAP", "❌ Subscription not found. Check Play Console product ID.");
-                return;
-            }
-
-            productDetails = list.get(0);
-            Log.d("IAP", "Subscription fetched: " + productDetails.getName());
-        });
+    private void loadFragment(Fragment fragment) {
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        transaction.replace(R.id.fragment_container, fragment);
+        transaction.commit();
     }
 
-    // -------------------------------
-    // 5️⃣ Start Subscription Purchase Flow
-    // -------------------------------
-    private void startSubscriptionPurchase() {
-
-        // For subscriptions, we need the offer token from the base plan
-        List<ProductDetails.SubscriptionOfferDetails> offerDetailsList =
-                productDetails.getSubscriptionOfferDetails();
-
-        if (offerDetailsList == null || offerDetailsList.isEmpty()) {
-            Log.e("IAP", "No subscription offer found!");
-            return;
-        }
-
-        ProductDetails.SubscriptionOfferDetails offerDetails = offerDetailsList.get(0);
-
-        BillingFlowParams.ProductDetailsParams productDetailsParams =
-                BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(productDetails)
-                        .setOfferToken(offerDetails.getOfferToken())
-                        .build();
-
-        BillingFlowParams flowParams =
-                BillingFlowParams.newBuilder()
-                        .setProductDetailsParamsList(Collections.singletonList(productDetailsParams))
-                        .build();
-
-        BillingResult result = billingClient.launchBillingFlow(this, flowParams);
-        Log.d("IAP", "Subscription purchase launched: " + result.getDebugMessage());
-    }
-
-    // -------------------------------
-    // 6️⃣ Purchases Updated Listener
-    // -------------------------------
-    private final PurchasesUpdatedListener purchasesUpdatedListener = new PurchasesUpdatedListener() {
-        @Override
-        public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
-
-            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && purchases != null) {
-
-                for (Purchase purchase : purchases) {
-                    handlePurchase(purchase);
-                }
-
-            } else if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {
-                Log.e("IAP", "User canceled purchase");
-            } else {
-                Log.e("IAP", "Purchase failed: " + billingResult.getDebugMessage());
-            }
-        }
-    };
-
-    // -------------------------------
-    // 7️⃣ Handle Purchase & Acknowledge
-    // -------------------------------
-    private void handlePurchase(Purchase purchase) {
-        if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
-
-            if (!purchase.isAcknowledged()) {
-                AcknowledgePurchaseParams acknowledgePurchaseParams =
-                        AcknowledgePurchaseParams.newBuilder()
-                                .setPurchaseToken(purchase.getPurchaseToken())
-                                .build();
-
-                billingClient.acknowledgePurchase(acknowledgePurchaseParams, billingResult -> {
-                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                        Toast.makeText(MainActivity.this, "Subscription active!", Toast.LENGTH_SHORT).show();
-                        Log.d("IAP", "Purchase acknowledged");
-                    }
-                });
-            }
-        }
+    private void goToLoginActivity() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }

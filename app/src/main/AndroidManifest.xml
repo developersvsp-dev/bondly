@@ -1,7 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Required permissions for Firebase Phone Auth & Network -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- SMS permissions for auto OTP reading (Android 11+) -->
+<!--    <uses-permission android:name="android.permission.RECEIVE_SMS" />-->
+<!--    <uses-permission android:name="android.permission.READ_SMS" />-->
+
+    <!-- Phone state for carrier info -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- Billing permission -->
     <uses-permission android:name="com.android.vending.BILLING" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,15 +28,56 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Bondly"
         tools:targetApi="31">
+
+        <!-- Fragments (NOT activities) -->
+        <!-- Remove FeedFragment as it's a Fragment, not Activity -->
+
+        <!-- Auth Flow Activities -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true">
+            android:name=".SplashActivity"
+            android:exported="true"
+            android:theme="@style/LaunchTheme"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+        <!-- Main App (Bottom Navigation) - Entry after login -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:launchMode="singleTask" />
+
+        <!-- Login Flow -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false"
+            android:parentActivityName=".SplashActivity" />
+
+        <!-- OTP Verification -->
+        <activity
+            android:name=".OtpVerificationActivity"
+            android:exported="false"
+            android:parentActivityName=".LoginActivity" />
+
+        <!-- Registration -->
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false"
+            android:parentActivityName=".SplashActivity" />
+
+        <!-- Other Activities -->
+        <activity
+            android:name=".FeedActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".PremiumActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
+    </application>
 </manifest>
