@@ -48,13 +48,25 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivProfilePic"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="16dp"
+                        android:scaleType="centerCrop"
+                        app:shapeAppearanceOverlay="@style/CircleImage"
+                        app:strokeColor="@color/primary_color"
+                        app:strokeWidth="3dp" />
+
                     <TextView
                         android:id="@+id/tvName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textSize="20sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center" />
 
                     <TextView
                         android:id="@+id/tvEmail"
@@ -70,7 +82,18 @@
                         android:layout_height="wrap_content"
                         android:textSize="16sp"
                         android:textColor="?android:attr/textColorSecondary"
-                        android:layout_marginBottom="12dp" />
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 🔥 GENDER DISPLAY -->
+                    <TextView
+                        android:id="@+id/tvGender"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary_color"
+                        android:layout_marginBottom="8dp"
+                        android:visibility="gone" />
 
                     <TextView
                         android:id="@+id/tvBio"
@@ -103,13 +126,55 @@
 
         </LinearLayout>
 
-        <!-- Edit Layout (ALL FIELDS PRESENT) -->
+        <!-- Edit Layout -->
         <LinearLayout
             android:id="@+id/editLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
+
+            <!-- Profile Picture Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="20dp">
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivProfilePicEdit"
+                        android:layout_width="100dp"
+                        android:layout_height="100dp"
+                        android:scaleType="centerCrop"
+                        app:shapeAppearanceOverlay="@style/CircleImage"
+                        app:strokeColor="@color/primary_color"
+                        app:strokeWidth="3dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tap to change photo"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:layout_marginTop="8dp" />
+
+                    <Button
+                        android:id="@+id/btnChangePhoto"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="8dp"
+                        android:text="Change Photo"
+                        android:textSize="14sp"
+                        app:cornerRadius="20dp" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
@@ -153,6 +218,20 @@
                     android:hint="Phone (from registration)"
                     android:inputType="phone"
                     android:cursorVisible="false" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- 🔥 GENDER DROPDOWN - FIXED (NO prompt attribute) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:startIconDrawable="@android:drawable/ic_menu_info_details">
+
+                <Spinner
+                    android:id="@+id/spinnerGender"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:entries="@array/gender_options" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout

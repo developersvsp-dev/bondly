@@ -22,4 +22,11 @@
         app:itemTextColor="@color/selector_bottom_nav"
         app:menu="@menu/bottom_nav_menu" />
 
+    <ProgressBar
+        android:id="@+id/splash_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
+
 </LinearLayout>

@@ -47,4 +47,12 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'com.google.android.material:material:1.10.0'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    implementation 'com.google.android.material:material:1.11.0' // ADD THESE NEW LINES:
+    implementation 'com.google.firebase:firebase-storage:20.3.0'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    // Activity Result (for gallery picker)
+    implementation 'androidx.activity:activity:1.8.2'
+
 }
+apply plugin: 'com.google.gms.google-services'

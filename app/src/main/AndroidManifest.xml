@@ -9,12 +9,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- SMS permissions for auto OTP reading (Android 11+) -->
-<!--    <uses-permission android:name="android.permission.RECEIVE_SMS" />-->
-<!--    <uses-permission android:name="android.permission.READ_SMS" />-->
+    <!--    <uses-permission android:name="android.permission.RECEIVE_SMS" />-->
+    <!--    <uses-permission android:name="android.permission.READ_SMS" />-->
 
     <!-- Phone state for carrier info -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <!-- Billing permission -->
     <uses-permission android:name="com.android.vending.BILLING" />
 
