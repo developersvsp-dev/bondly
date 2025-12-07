@@ -27,7 +27,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Bondly"
-        tools:targetApi="31">
+        tools:targetApi="31"
+        android:enableOnBackInvokedCallback="true">
 
         <!-- Fragments (NOT activities) -->
         <!-- Remove FeedFragment as it's a Fragment, not Activity -->

@@ -42,7 +42,16 @@
             android:inputType="phone"
             android:padding="12dp"
             android:background="@drawable/edittext_background"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="16dp"/>
+
+        <!-- 🔥 GENDER SPINNER -->
+        <Spinner
+            android:id="@+id/spinnerGender"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/edittext_background"
+            android:padding="12dp"/>
 
         <!-- Send OTP Button -->
         <Button

@@ -1,10 +1,13 @@
 package com.vaibhav.bondly;
+
 import android.widget.EditText;
+import android.widget.Spinner;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,9 +23,13 @@ import java.util.concurrent.TimeUnit;
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText etName, etPhoneNumber;
+    private Spinner spinnerGender;  // 🔥 NEW
     private Button btnSendOTP, btnLogin;
     private TextView tvLoginPrompt;
     private FirebaseAuth mAuth;
+
+    // 🔥 STORE USER DATA for OTP screen
+    private String userName, phoneNumber, userGender;  // 🔥 Added gender
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,16 +40,28 @@ public class RegisterActivity extends AppCompatActivity {
 
         etName = findViewById(R.id.etName);
         etPhoneNumber = findViewById(R.id.etPhoneNumber);
+        spinnerGender = findViewById(R.id.spinnerGender);  // 🔥 NEW
         btnSendOTP = findViewById(R.id.btnRegister);
         btnLogin = findViewById(R.id.btnLogin);
         tvLoginPrompt = findViewById(R.id.tvLoginPrompt);
 
-        btnSendOTP.setOnClickListener(v -> {
-            String name = etName.getText().toString().trim();
-            String phoneNumber = etPhoneNumber.getText().toString().trim();
+        // 🔥 SETUP GENDER SPINNER
+        setupGenderSpinner();
 
-            if (TextUtils.isEmpty(name) || TextUtils.isEmpty(phoneNumber)) {
-                Toast.makeText(RegisterActivity.this, "Name and phone number required", Toast.LENGTH_SHORT).show();
+        btnSendOTP.setOnClickListener(v -> {
+            userName = etName.getText().toString().trim();
+            phoneNumber = etPhoneNumber.getText().toString().trim();
+            userGender = spinnerGender.getSelectedItem() != null ?
+                    spinnerGender.getSelectedItem().toString() : "";
+
+            // 🔥 VALIDATE GENDER TOO
+            if (TextUtils.isEmpty(userName) || TextUtils.isEmpty(phoneNumber) || userGender.isEmpty()) {
+                Toast.makeText(RegisterActivity.this, "Please fill all fields including gender", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (userGender.equals("Select Gender")) {
+                Toast.makeText(RegisterActivity.this, "Please select your gender", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -56,23 +75,29 @@ public class RegisterActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        // Optional: Make TextView clickable too
         tvLoginPrompt.setOnClickListener(v -> {
             Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
             startActivity(intent);
         });
     }
 
+    private void setupGenderSpinner() {
+        ArrayAdapter<CharSequence> genderAdapter = ArrayAdapter.createFromResource(this,
+                R.array.gender_options, android.R.layout.simple_spinner_item);
+        genderAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerGender.setAdapter(genderAdapter);
+        spinnerGender.setSelection(0); // Default "Select Gender"
+    }
+
     private void startPhoneNumberVerification(String phoneNumber) {
         PhoneAuthOptions options =
                 PhoneAuthOptions.newBuilder(mAuth)
-                        .setPhoneNumber(phoneNumber)       // Phone number to verify
+                        .setPhoneNumber(phoneNumber)
                         .setTimeout(60L, TimeUnit.SECONDS)
-                        .setActivity(this)                 // Activity (for callback binding)
+                        .setActivity(this)
                         .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                             @Override
                             public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-                                // Auto verification or instant verification
                                 signInWithPhoneAuthCredential(credential);
                             }
 
@@ -84,9 +109,12 @@ public class RegisterActivity extends AppCompatActivity {
                             @Override
                             public void onCodeSent(@NonNull String verificationId, @NonNull PhoneAuthProvider.ForceResendingToken token) {
                                 super.onCodeSent(verificationId, token);
-                                // Navigate to OTP Verification Activity with verificationId
+                                // 🚀 PASS ALL DATA TO OTP SCREEN
                                 Intent intent = new Intent(RegisterActivity.this, OtpVerificationActivity.class);
                                 intent.putExtra("verificationId", verificationId);
+                                intent.putExtra("userName", userName);
+                                intent.putExtra("phoneNumber", phoneNumber);
+                                intent.putExtra("userGender", userGender);  // 🔥 NEW
                                 startActivity(intent);
                                 Toast.makeText(RegisterActivity.this, "OTP sent! Check your SMS.", Toast.LENGTH_SHORT).show();
                             }
@@ -101,8 +129,7 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         Toast.makeText(RegisterActivity.this, "Registration successful!", Toast.LENGTH_SHORT).show();
-                        // Navigate to FeedActivity
-                        Intent intent = new Intent(RegisterActivity.this, FeedActivity.class);
+                        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                         finish();
