@@ -58,7 +58,7 @@ public class ProfileAdapter extends RecyclerView.Adapter<ProfileAdapter.ProfileV
 
         void bind(Profile profile) {
             tvName.setText(profile.getName());
-            tvPhone.setText(profile.getPhone());
+            //tvPhone.setText(profile.getPhone());
             tvGender.setText(profile.getGender() != null ? profile.getGender() : "Not set");
             tvBio.setText(profile.getBio() != null ? profile.getBio() : "No bio");
 

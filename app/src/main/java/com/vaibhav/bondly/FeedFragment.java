@@ -98,9 +98,8 @@ public class FeedFragment extends Fragment {
                             continue;
                         }
 
-                        // 🔥 LOAD ALL FIELDS: name, phone, photoUrl, gender, bio
+                        // 🔥 LOAD ALL FIELDS EXCEPT PHONE
                         String name = doc.getString("name");
-                        String phone = doc.getString("phone");
                         String photoUrl = doc.getString("photoUrl");
                         String gender = doc.getString("gender");
                         String bio = doc.getString("bio");
@@ -108,10 +107,10 @@ public class FeedFragment extends Fragment {
                         Profile profile = new Profile();
                         profile.setUid(uid);
                         profile.setName(name != null ? name : "User " + uid.substring(0, 6));
-                        profile.setPhone(phone != null ? phone : "No phone");
+                        // 🔥 PHONE REMOVED - NO profile.setPhone()
                         profile.setPhotoUrl(photoUrl);
                         profile.setGender(gender);
-                        profile.setBio(bio);  // 🔥 BIO SUPPORT
+                        profile.setBio(bio);
                         profiles.add(profile);
 
                         Log.d(TAG, "✅ Loaded: " + profile.getName() + " (" + gender + ") | Bio: " + bio);
@@ -138,6 +137,7 @@ public class FeedFragment extends Fragment {
                     tvWelcome.setText("Failed to load profiles");
                 });
     }
+
 
 
     private void showLoading(boolean show) {
