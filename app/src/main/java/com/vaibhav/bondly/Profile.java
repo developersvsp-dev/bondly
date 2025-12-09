@@ -6,7 +6,10 @@ public class Profile {
     private String phone;
     private String photoUrl;
     private String gender;
-    private String bio;  // 🔥 ADDED BIO
+    private String bio;
+
+    private boolean isLikedByMe = false;
+    private int likesCount = 0;
 
     public Profile() {}
 
@@ -35,6 +38,12 @@ public class Profile {
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
 
-    public String getBio() { return bio; }      // 🔥 BIO GETTER
-    public void setBio(String bio) { this.bio = bio; }  // 🔥 BIO SETTER
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    // 🔥 THESE 4 NEW METHODS FIX YOUR ERROR
+    public boolean isLikedByMe() { return isLikedByMe; }
+    public void setLikedByMe(boolean likedByMe) { this.isLikedByMe = likedByMe; }
+    public int getLikesCount() { return likesCount; }
+    public void setLikesCount(int likesCount) { this.likesCount = likesCount; }
 }
