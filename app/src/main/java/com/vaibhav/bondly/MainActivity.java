@@ -3,14 +3,12 @@ package com.vaibhav.bondly;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
-
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -19,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private BottomNavigationView bottomNavigation;
     private FirebaseAuth mAuth;
-    private View splashView;  // Show while checking auth
+    private View splashView;
     private boolean isNavigationSetup = false;
 
     @Override
@@ -28,12 +26,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mAuth = FirebaseAuth.getInstance();
-        splashView = findViewById(R.id.splash_view);  // Add ProgressBar in layout
+        splashView = findViewById(R.id.splash_view);
 
-        // 🔥 SHOW SPLASH WHILE CHECKING
         showSplash();
-
-        // 🔥 BULLETPROOF: Check IMMEDIATELY + AuthStateListener
         checkAuthImmediately();
         setupAuthStateListener();
     }
@@ -41,21 +36,36 @@ public class MainActivity extends AppCompatActivity {
     private void checkAuthImmediately() {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             FirebaseUser user = mAuth.getCurrentUser();
-            Log.d(TAG, "🔥 IMMEDIATE CHECK: " + (user != null ? user.getUid() : "NULL"));
+            Log.d(TAG, "🔥 CURRENT USER ID: " + (user != null ? user.getUid() : "NULL"));
 
             if (user != null) {
+                // ✅ AUTO LOGIN IF NEEDED
+                if (user.isAnonymous()) {
+                    Log.d(TAG, "✅ Anonymous user OK: " + user.getUid());
+                }
                 hideSplash();
                 setupBottomNavigation();
+            } else {
+                // ✅ AUTO ANONYMOUS LOGIN (Production ready)
+                mAuth.signInAnonymously()
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                Log.d(TAG, "✅ AUTO LOGIN SUCCESS: " + mAuth.getCurrentUser().getUid());
+                                hideSplash();
+                                setupBottomNavigation();
+                            } else {
+                                Log.e(TAG, "❌ Auto login failed");
+                            }
+                        });
             }
-        }, 500);  // 0.5s delay for Firebase sync
+        }, 500);
     }
 
     private void setupAuthStateListener() {
         mAuth.addAuthStateListener(firebaseAuth -> {
             FirebaseUser user = firebaseAuth.getCurrentUser();
-            Log.d(TAG, "🔥 AuthStateListener: " + (user != null ? user.getUid() : "NULL"));
-
             if (user != null && !isNavigationSetup) {
+                Log.d(TAG, "🔥 Auth ready: " + user.getUid());
                 hideSplash();
                 setupBottomNavigation();
             }
@@ -79,10 +89,10 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
-        bottomNavigation.setSelectedItemId(R.id.nav_feed);
-        loadFragment(new FeedFragment());
+        bottomNavigation.setSelectedItemId(R.id.nav_settings); // Start with Settings
+        loadFragment(new SettingsFragment());
         isNavigationSetup = true;
-        Log.d(TAG, "✅ FEED + BOTTOM NAV LOADED!");
+        Log.d(TAG, "✅ APP READY - User ID: " + mAuth.getCurrentUser().getUid());
     }
 
     private void loadFragment(Fragment fragment) {
@@ -99,14 +109,6 @@ public class MainActivity extends AppCompatActivity {
     private void hideSplash() {
         if (splashView != null) splashView.setVisibility(View.GONE);
         if (bottomNavigation != null) bottomNavigation.setVisibility(View.VISIBLE);
-    }
-
-    private void goToRegisterActivity() {
-        hideSplash();
-        Intent intent = new Intent(this, RegisterActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
     }
 
     @Override

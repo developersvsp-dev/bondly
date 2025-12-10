@@ -5,12 +5,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
@@ -21,22 +21,32 @@ public class MatchesFragment extends Fragment {
     private MatchesAdapter adapter;
     private ArrayList<User> likersList;
     private FirebaseFirestore db;
-    private String currentUserId = "WoYpUC8XCDa8ITNPPCdc3rKRuEZ2"; // YOUR CORRECT USER ID
+    private String currentUserId;  // ✅ DECLARED HERE
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_matches, container, false);
 
+        // ✅ AUTO DETECT CURRENT USER ID
+        currentUserId = UserManager.getCurrentUserId();
+        Log.d("MatchesFragment", "🔥 Current User ID: " + currentUserId);
+
         recyclerView = view.findViewById(R.id.recycler_matches);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         likersList = new ArrayList<>();
-        adapter = new MatchesAdapter(likersList, getContext());
+        adapter = new MatchesAdapter(likersList, getContext());  // ✅ Passes auto-detected ID internally
         recyclerView.setAdapter(adapter);
 
         db = FirebaseFirestore.getInstance();
         loadLikers();
+
+        // ✅ NEW: INBOX BUTTON
+        Button btnInbox = view.findViewById(R.id.btn_inbox);
+        if (btnInbox != null) {
+            btnInbox.setOnClickListener(v -> navigateToInbox());
+        }
 
         return view;
     }
@@ -81,14 +91,23 @@ public class MatchesFragment extends Fragment {
                                 documentSnapshot.getString("name") : "Unknown User";
                         user.bio = documentSnapshot.getString("bio") != null ?
                                 documentSnapshot.getString("bio") : "No bio";
-
-                        // ✅ FETCH PHOTO URL FROM FIREBASE
                         user.profileImage = documentSnapshot.getString("photoUrl");
 
                         likersList.add(user);
                         adapter.notifyDataSetChanged();
-                        Log.d("MatchesFragment", "✅ Added user: " + user.name + " with photo: " + user.profileImage);
+                        Log.d("MatchesFragment", "✅ Added user: " + user.name);
                     }
                 });
+    }
+
+    // ✅ NEW: NAVIGATE TO INBOX
+    private void navigateToInbox() {
+        InboxFragment inboxFragment = new InboxFragment();
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, inboxFragment)
+                .addToBackStack("inbox")
+                .commit();
+        Log.d("MatchesFragment", "📱 Navigated to Inbox");
     }
 }
