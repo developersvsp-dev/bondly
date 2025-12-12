@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-import java.util.TimeZone;  // 🔥 ADD
+import java.util.TimeZone;
 
 public class ChatFragment extends Fragment {
     private static final String TAG = "ChatFragment";
@@ -78,8 +78,8 @@ public class ChatFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
 
         // 🔥 HIDE BOTTOM NAV (WhatsApp style)
-        if (getActivity() instanceof com.vaibhav.bondly.MainActivity) {
-            ((com.vaibhav.bondly.MainActivity) getActivity()).hideBottomNavigation();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).hideBottomNavigation();
         }
 
         initViews(view);
@@ -99,7 +99,7 @@ public class ChatFragment extends Fragment {
         btnSend = view.findViewById(R.id.btn_send);
     }
 
-    // 🔥 UPDATED: isOnline=true → "online" | isOnline=false → "last seen HH:mm"
+    // 🔥 CLEANED UP: Production-ready online status
     private void loadChatUserHeader(View view) {
         if (tvChatUserName == null || otherUserId == null || otherUserId.isEmpty() || db == null) {
             if (tvChatUserName != null) tvChatUserName.setText("Chat");
@@ -122,38 +122,25 @@ public class ChatFragment extends Fragment {
                         tvChatUserName.setText(name != null ? name : "User");
                     }
 
+                    // 🔥 WHATSAPP-STYLE STATUS
                     if (tvOnlineStatus != null) {
                         if (Boolean.TRUE.equals(isOnline)) {
                             tvOnlineStatus.setText("online");
-                            tvOnlineStatus.setTextColor(0xFF4CAF50);
+                            tvOnlineStatus.setTextColor(0xFF4CAF50); // Green
                         } else if (lastSeen != null) {
                             try {
-                                Log.d("CHAT_DEBUG", "🔥 RAW: " + lastSeen);
-
-                                // TEST 1: Device time (what's wrong)
-                                Date rawDate = new Date(lastSeen);
-                                SimpleDateFormat deviceSdf = new SimpleDateFormat("HH:mm z", Locale.getDefault());
-                                Log.d("CHAT_DEBUG", "🔥 DEVICE TIME: " + deviceSdf.format(rawDate));
-
-                                // TEST 2: Pure IST Calendar
+                                // ✅ SIMPLIFIED IST FORMATTING (production ready)
                                 Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
                                 cal.setTimeInMillis(lastSeen);
-                                SimpleDateFormat istSdf = new SimpleDateFormat("HH:mm z", Locale.getDefault());
-                                istSdf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
-                                Log.d("CHAT_DEBUG", "🔥 IST CALENDAR: " + istSdf.format(cal.getTime()));
-
-                                // FINAL DISPLAY
-                                SimpleDateFormat displaySdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
-                                displaySdf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
-                                String timeStr = displaySdf.format(cal.getTime());
-
-                                Log.d("CHAT_DEBUG", "🔥 FINAL DISPLAY: " + timeStr);
+                                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+                                sdf.setTimeZone(TimeZone.getTimeZone("Asia/Kolkata"));
+                                String timeStr = sdf.format(cal.getTime());
 
                                 tvOnlineStatus.setText("last seen " + timeStr);
-                                tvOnlineStatus.setTextColor(0xFF757575);
+                                tvOnlineStatus.setTextColor(0xFF757575); // Grey
                             } catch (Exception e) {
-                                Log.e("CHAT_ERROR", "Time format error", e);
                                 tvOnlineStatus.setText("offline");
+                                tvOnlineStatus.setTextColor(0xFF757575);
                             }
                         } else {
                             tvOnlineStatus.setText("offline");
@@ -161,14 +148,24 @@ public class ChatFragment extends Fragment {
                         }
                     }
 
-                    if (photoUrl != null && !photoUrl.isEmpty() && ivChatProfile != null) {
-                        Glide.with(this).load(photoUrl).circleCrop().into(ivChatProfile);
+                    // 🔥 IMPROVED GLIDE (handles no photo perfectly)
+                    if (ivChatProfile != null) {
+                        if (photoUrl != null && !photoUrl.isEmpty()) {
+                            Glide.with(this)
+                                    .load(photoUrl)
+                                    .placeholder(R.drawable.ic_person_placeholder)
+                                    .error(R.drawable.ic_person_placeholder)
+                                    .circleCrop()
+                                    .into(ivChatProfile);
+                        } else {
+                            Glide.with(this)
+                                    .load(R.drawable.ic_person_placeholder)
+                                    .circleCrop()
+                                    .into(ivChatProfile);
+                        }
                     }
                 });
     }
-
-
-
 
     private void setupMessageRecycler() {
         if (recyclerMessages == null) return;
@@ -250,8 +247,8 @@ public class ChatFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (getActivity() instanceof com.vaibhav.bondly.MainActivity) {
-            ((com.vaibhav.bondly.MainActivity) getActivity()).showBottomNavigation();
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showBottomNavigation();
         }
     }
 }

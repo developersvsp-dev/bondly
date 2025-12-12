@@ -28,7 +28,7 @@ public class SettingsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
 
         // Find and setup Matches button
-        Button matchesButton = view.findViewById(R.id.btn_matches);
+        View matchesButton = view.findViewById(R.id.btn_matches);
         matchesButton.setOnClickListener(v -> navigateToMatches());
 
         return view;

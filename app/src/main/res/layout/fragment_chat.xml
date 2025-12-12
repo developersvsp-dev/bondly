@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="true"
+    >
 
     <!-- 🔥 WHATSAPP HEADER - STATUS BELOW NAME -->
     <LinearLayout
@@ -14,13 +17,17 @@
         android:background="@android:color/white"
         android:elevation="4dp">
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_chat_profile"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="12dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="16dp"
             android:scaleType="centerCrop"
-            android:background="@drawable/ic_launcher_background" />
+            android:contentDescription="Profile"
+            app:shapeAppearanceOverlay="@style/CircleImage"
+            app:strokeColor="@android:color/transparent"
+            app:strokeWidth="0dp"/>
+
 
         <!-- 🔥 NAME + STATUS STACKED VERTICALLY -->
         <LinearLayout
