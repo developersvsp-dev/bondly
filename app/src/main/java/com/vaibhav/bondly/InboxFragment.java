@@ -14,19 +14,20 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import java.util.ArrayList;
+import java.util.HashMap;  // 🔥 ADD THIS
+import java.util.Map;       // 🔥 ADD THIS
 
 public class InboxFragment extends Fragment {
     private RecyclerView recyclerView;
     private ChatAdapter adapter;
     private ArrayList<Chat> chatsList;
     private FirebaseFirestore db;
-    private String currentUserId;  // ✅ DECLARED HERE
+    private String currentUserId;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_inbox2, container, false);
 
-        // ✅ AUTO DETECT CURRENT USER ID
         currentUserId = UserManager.getCurrentUserId();
         Log.d("InboxFragment", "🔥 Current User ID: " + currentUserId);
 
@@ -34,53 +35,58 @@ public class InboxFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         chatsList = new ArrayList<>();
-        adapter = new ChatAdapter(chatsList, getContext(), currentUserId);  // ✅ Passes auto-detected ID
+        adapter = new ChatAdapter(chatsList, getContext(), currentUserId);
         recyclerView.setAdapter(adapter);
 
         db = FirebaseFirestore.getInstance();
         loadChats();
 
-        // ✅ BACK BUTTON
-        Button btnBack = view.findViewById(R.id.btn_back);
-        if (btnBack != null) {
-            btnBack.setOnClickListener(v -> getParentFragmentManager().popBackStack());
-        }
-
         return view;
     }
 
     private void loadChats() {
-        Log.d("InboxFragment", "🔍 Loading chats for user: " + currentUserId);
+        Log.d("InboxFragment", "🔍 Loading chats for: " + currentUserId);
 
         db.collection("chats")
                 .whereArrayContains("users", currentUserId)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    Log.d("InboxFragment", "✅ Found " + querySnapshot.size() + " chats");
-                    chatsList.clear();
-
-                    for (var doc : querySnapshot.getDocuments()) {
-                        Chat chat = doc.toObject(Chat.class);
-                        if (chat != null) {
-                            chat.chatId = doc.getId();
-
-                            // ✅ SET OTHER USER ID (not current user)
-                            if (chat.users != null && chat.users.size() >= 2) {
-                                chat.otherUserId = chat.users.get(0).equals(currentUserId)
-                                        ? chat.users.get(1)
-                                        : chat.users.get(0);
-                            }
-
-                            chatsList.add(chat);
-                        }
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        Log.e("InboxFragment", "❌ Error: " + error.getMessage());
+                        return;
                     }
 
+                    chatsList.clear();
+                    if (snapshot != null && !snapshot.isEmpty()) {
+                        Log.d("InboxFragment", "✅ Found " + snapshot.size() + " chats!");
+
+                        // 🔥 DEDUPE: One chat per user pair
+                        Map<String, Chat> uniqueByPair = new HashMap<>();
+
+                        for (var doc : snapshot.getDocuments()) {
+                            Chat chat = doc.toObject(Chat.class);
+                            if (chat == null || chat.users == null || chat.users.size() < 2) continue;
+
+                            chat.chatId = doc.getId();
+
+                            String u1 = chat.users.get(0);
+                            String u2 = chat.users.get(1);
+                            // 🔥 CANONICAL KEY (alphabetical order)
+                            String key = u1.compareTo(u2) < 0 ? (u1 + "_" + u2) : (u2 + "_" + u1);
+
+                            // Keep only FIRST (newest due to DESC order)
+                            if (!uniqueByPair.containsKey(key)) {
+                                chat.otherUserId = u1.equals(currentUserId) ? u2 : u1;
+                                uniqueByPair.put(key, chat);
+                            }
+                        }
+
+                        chatsList.addAll(uniqueByPair.values());
+                    } else {
+                        Log.d("InboxFragment", "📭 No chats yet");
+                    }
                     adapter.notifyDataSetChanged();
-                    Log.d("InboxFragment", "✅ Loaded " + chatsList.size() + " chats");
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("InboxFragment", "❌ Failed to load chats: " + e.getMessage());
+                    Log.d("InboxFragment", "✅ Loaded " + chatsList.size() + " chats (deduped)");
                 });
     }
 }

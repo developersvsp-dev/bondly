@@ -1,6 +1,7 @@
 package com.vaibhav.bondly;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,10 +40,14 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     public void onBindViewHolder(@NonNull ChatViewHolder holder, int position) {
         Chat chat = chatsList.get(position);
 
-        // ✅ FIXED: Load other user details WITHOUT exists()
-        db.collection("users").document(chat.otherUserId).get()
+        // 🔥 FIX: Ensure correct otherUserId
+        String otherUserId = getOtherUserId(chat);
+        Log.d("ChatAdapter", "Chat: " + chat.chatId + " | Other: " + otherUserId);
+
+        // ✅ Load other user details
+        db.collection("users").document(otherUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot != null && documentSnapshot.getData() != null) {
+                    if (documentSnapshot.exists()) {
                         String name = documentSnapshot.getString("name");
                         String photoUrl = documentSnapshot.getString("photoUrl");
 
@@ -57,8 +62,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         holder.lastMessageText.setText(chat.lastMessage != null ? chat.lastMessage : "Say hi to start chatting!");
         holder.timeText.setText(formatTime(chat.timestamp));
 
-        // ✅ TAP CHAT TO OPEN - PASS CURRENT USER ID
-        holder.itemView.setOnClickListener(v -> openChat(chat));
+        // ✅ TAP CHAT TO OPEN
+        holder.itemView.setOnClickListener(v -> openChat(chat, otherUserId));
     }
 
     @Override
@@ -66,12 +71,33 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         return chatsList.size();
     }
 
-    // ✅ OPEN CHAT WITH PROPER USER IDs
-    private void openChat(Chat chat) {
+    // 🔥 CRITICAL FIX: Get CORRECT other user (not current user)
+    private String getOtherUserId(Chat chat) {
+        if (chat.users != null && chat.users.size() == 2) {
+            // 🔥 FORCE CORRECT ORDER: Return NON-current user
+            String user1 = chat.users.get(0);
+            String user2 = chat.users.get(1);
+
+            Log.d("ChatAdapter", "Users array: [" + user1 + ", " + user2 + "] | Current: " + currentUserId);
+
+            if (user1.equals(currentUserId)) {
+                return user2;  // ✅ OTHER USER
+            } else {
+                return user1;  // ✅ OTHER USER
+            }
+        }
+        return "unknown";
+    }
+
+
+    // 🔥 FIXED: Pass CORRECT otherUserId
+    private void openChat(Chat chat, String otherUserId) {
+        Log.d("ChatAdapter", "Opening chat with otherUserId: " + otherUserId);
+
         ChatFragment chatFragment = ChatFragment.newInstance(
                 chat.chatId,
-                chat.otherUserId,
-                currentUserId  // ✅ DYNAMIC USER ID
+                otherUserId,        // ✅ CORRECT OTHER USER
+                currentUserId       // ✅ CURRENT USER
         );
 
         ((AppCompatActivity) context).getSupportFragmentManager()

@@ -12,6 +12,9 @@ import android.view.View;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;  // 🔥 ADD
+import java.util.HashMap;  // 🔥 ADD
+import java.util.Map;      // 🔥 ADD
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -89,10 +92,11 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
-        bottomNavigation.setSelectedItemId(R.id.nav_settings); // Start with Settings
-        loadFragment(new SettingsFragment());
+        // 🔥 CHANGE: Start with FEED instead of Settings
+        bottomNavigation.setSelectedItemId(R.id.nav_feed);
+        loadFragment(new FeedFragment());
         isNavigationSetup = true;
-        Log.d(TAG, "✅ APP READY - User ID: " + mAuth.getCurrentUser().getUid());
+        Log.d(TAG, "✅ APP READY on FEED - User ID: " + mAuth.getCurrentUser().getUid());
     }
 
     private void loadFragment(Fragment fragment) {
@@ -111,11 +115,50 @@ public class MainActivity extends AppCompatActivity {
         if (bottomNavigation != null) bottomNavigation.setVisibility(View.VISIBLE);
     }
 
+    // 🔥 FOR CHATFRAGMENT & INBOX - HIDE/SHOW BOTTOM NAV
+    public void hideBottomNavigation() {
+        if (bottomNavigation != null) {
+            bottomNavigation.setVisibility(View.GONE);
+        }
+    }
+
+    public void showBottomNavigation() {
+        if (bottomNavigation != null) {
+            bottomNavigation.setVisibility(View.VISIBLE);
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         if (mAuth != null) {
             mAuth.removeAuthStateListener(firebaseAuth -> {});
         }
+    }
+    // 🔥 ADD THESE 2 METHODS (app online/offline)
+    @Override
+    protected void onStart() {
+        super.onStart();
+        updateUserStatus(true);  // Set ONLINE
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        updateUserStatus(false); // Set OFFLINE
+    }
+
+    // 🔥 ADD THIS METHOD
+    private void updateUserStatus(boolean isOnline) {
+        String uid = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : null;
+        if (uid == null) return;
+
+        Map<String, Object> status = new HashMap<>();
+        status.put("isOnline", isOnline);
+        status.put("lastSeen", System.currentTimeMillis());
+
+        FirebaseFirestore.getInstance().collection("users").document(uid)
+                .set(status, com.google.firebase.firestore.SetOptions.merge())  // MERGE (don't overwrite other fields)
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update status", e));
     }
 }

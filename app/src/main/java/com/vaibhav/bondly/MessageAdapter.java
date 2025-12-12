@@ -17,17 +17,11 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     private ArrayList<Message> messagesList;
     private String currentUserId;
 
-    public MessageAdapter(String currentUserId) {
-        this.messagesList = new ArrayList<>();
+    // 🔥 FIXED: Accept list + currentUserId
+    public MessageAdapter(ArrayList<Message> messagesList, String currentUserId) {
+        this.messagesList = messagesList;
         this.currentUserId = currentUserId;
         Log.d("MessageAdapter", "🔥 Initialized with currentUserId: " + currentUserId);
-    }
-
-    public void updateMessages(ArrayList<Message> newMessages) {
-        Log.d("MessageAdapter", "📱 Updating with " + newMessages.size() + " messages");
-        this.messagesList.clear();
-        this.messagesList.addAll(newMessages);
-        notifyDataSetChanged();
     }
 
     @NonNull
@@ -70,13 +64,11 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     public int getItemViewType(int position) {
         Message message = messagesList.get(position);
         boolean isMyMessage = message.senderId.equals(currentUserId);
-
         int viewType = isMyMessage ? 0 : 1;  // 0=RIGHT (you), 1=LEFT (other)
         Log.d("MessageAdapter", "getItemViewType pos=" + position +
                 " sender=" + message.senderId +
                 " current=" + currentUserId +
                 " → viewType=" + viewType);
-
         return viewType;
     }
 
