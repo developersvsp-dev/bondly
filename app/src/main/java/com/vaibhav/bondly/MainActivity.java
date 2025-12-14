@@ -9,12 +9,14 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
+import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import androidx.appcompat.widget.Toolbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;  // 🔥 ADD
-import java.util.HashMap;  // 🔥 ADD
-import java.util.Map;      // 🔥 ADD
+import com.google.firebase.firestore.FirebaseFirestore;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -22,6 +24,10 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private View splashView;
     private boolean isNavigationSetup = false;
+
+    // 🔥 HEADER CONTROL
+    private AppBarLayout appbarHeader;
+    private Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,14 +48,10 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "🔥 CURRENT USER ID: " + (user != null ? user.getUid() : "NULL"));
 
             if (user != null) {
-                // ✅ AUTO LOGIN IF NEEDED
-                if (user.isAnonymous()) {
-                    Log.d(TAG, "✅ Anonymous user OK: " + user.getUid());
-                }
+                Log.d(TAG, "✅ User exists: " + user.getUid());
                 hideSplash();
                 setupBottomNavigation();
             } else {
-                // ✅ AUTO ANONYMOUS LOGIN (Production ready)
                 mAuth.signInAnonymously()
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
@@ -78,23 +80,40 @@ public class MainActivity extends AppCompatActivity {
     private void setupBottomNavigation() {
         if (isNavigationSetup) return;
 
+        // 🔥 INITIALIZE HEADER VIEWS
+        appbarHeader = findViewById(R.id.appbar_header);
+        toolbar = findViewById(R.id.toolbar);
+
         bottomNavigation = findViewById(R.id.bottom_navigation);
         bottomNavigation.setOnItemSelectedListener(item -> {
             Fragment fragment = null;
             int id = item.getItemId();
 
-            if (id == R.id.nav_feed) fragment = new FeedFragment();
-            else if (id == R.id.nav_inbox) fragment = new InboxFragment();
-            else if (id == R.id.nav_profile) fragment = new ProfileFragment();
-            else if (id == R.id.nav_settings) fragment = new SettingsFragment();
+            if (id == R.id.nav_feed) {
+                fragment = new FeedFragment();
+                showHeader("Lifemate"); // 🔥 SHOW HEADER ONLY ON FEED
+            }
+            else if (id == R.id.nav_inbox) {
+                fragment = new InboxFragment();
+                hideHeader(); // 🔥 HIDE ON INBOX
+            }
+            else if (id == R.id.nav_profile) {
+                fragment = new ProfileFragment();
+                hideHeader();
+            }
+            else if (id == R.id.nav_settings) {
+                fragment = new SettingsFragment();
+                hideHeader();
+            }
 
             if (fragment != null) loadFragment(fragment);
             return true;
         });
 
-        // 🔥 CHANGE: Start with FEED instead of Settings
+        // 🔥 START WITH FEED + HEADER
         bottomNavigation.setSelectedItemId(R.id.nav_feed);
         loadFragment(new FeedFragment());
+        showHeader("Lifemate");
         isNavigationSetup = true;
         Log.d(TAG, "✅ APP READY on FEED - User ID: " + mAuth.getCurrentUser().getUid());
     }
@@ -103,6 +122,24 @@ public class MainActivity extends AppCompatActivity {
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
         transaction.commit();
+    }
+
+    // 🔥 SHOW HEADER (FEED SCREEN ONLY)
+    private void showHeader(String title) {
+        if (appbarHeader != null) {
+            appbarHeader.setVisibility(View.VISIBLE);
+        }
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+            getSupportActionBar().setTitle(title);
+        }
+    }
+
+    // 🔥 HIDE HEADER (All other screens)
+    private void hideHeader() {
+        if (appbarHeader != null) {
+            appbarHeader.setVisibility(View.GONE);
+        }
     }
 
     private void showSplash() {
@@ -135,20 +172,19 @@ public class MainActivity extends AppCompatActivity {
             mAuth.removeAuthStateListener(firebaseAuth -> {});
         }
     }
-    // 🔥 ADD THESE 2 METHODS (app online/offline)
+
     @Override
     protected void onStart() {
         super.onStart();
-        updateUserStatus(true);  // Set ONLINE
+        updateUserStatus(true);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        updateUserStatus(false); // Set OFFLINE
+        updateUserStatus(false);
     }
 
-    // 🔥 ADD THIS METHOD
     private void updateUserStatus(boolean isOnline) {
         String uid = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : null;
         if (uid == null) return;
@@ -158,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
         status.put("lastSeen", System.currentTimeMillis());
 
         FirebaseFirestore.getInstance().collection("users").document(uid)
-                .set(status, com.google.firebase.firestore.SetOptions.merge())  // MERGE (don't overwrite other fields)
+                .set(status, com.google.firebase.firestore.SetOptions.merge())
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to update status", e));
     }
 }

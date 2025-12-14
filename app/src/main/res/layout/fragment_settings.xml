@@ -4,37 +4,37 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F8F9FA">
+    android:background="#FFFFFF">
 
-    <!-- 🔥 WHATSAPP HEADER -->
+    <!-- 🔥 PURPLE WHATSAPP SETTINGS HEADER -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="20dp"
-        android:background="@android:color/white"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="24dp"
+        android:background="#48366B"
         android:elevation="8dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Settings"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#111B21"
+            android:textSize="20sp"
+            android:textColor="@android:color/white"
             android:layout_gravity="center_vertical" />
 
     </LinearLayout>
 
-    <!-- 🔥 WHATSAPP CARDS -->
+    <!-- 🔥 SETTINGS CARDS CONTAINER -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_marginTop="24dp"
+        android:layout_marginHorizontal="16dp"
+        android:orientation="vertical">
 
-        <!-- 🔥 MATCHES BUTTON - WhatsApp Style -->
+        <!-- 🔥 MATCHES BUTTON - PERFECTLY MATCHES YOUR JAVA CODE -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -42,7 +42,6 @@
             app:cardCornerRadius="12dp"
             app:cardElevation="2dp">
 
-            <!-- 🔥 FIXED: Added ID + Ripple effect -->
             <LinearLayout
                 android:id="@+id/btn_matches"
                 android:layout_width="match_parent"
@@ -51,8 +50,9 @@
                 android:padding="20dp"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?attr/selectableItemBackground">
+                android:foreground="?attr/selectableItemBackground">
 
+                <!-- Icon -->
                 <ImageView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
@@ -63,6 +63,7 @@
                     app:strokeColor="@android:color/transparent"
                     android:scaleType="centerCrop" />
 
+                <!-- Text Content -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -75,7 +76,8 @@
                         android:text="Matches"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#111B21" />
+                        android:textColor="#111B21"
+                        android:layout_gravity="center_vertical" />
 
                     <TextView
                         android:layout_width="match_parent"
@@ -87,6 +89,7 @@
 
                 </LinearLayout>
 
+                <!-- Arrow -->
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
@@ -97,6 +100,12 @@
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- 🔥 SPACE FILLER - Makes layout match_parent -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
     </LinearLayout>
 
