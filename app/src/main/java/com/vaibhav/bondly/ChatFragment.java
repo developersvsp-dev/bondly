@@ -86,6 +86,7 @@ public class ChatFragment extends Fragment {
         loadChatUserHeader(view);
         setupMessageRecycler();
         setupSendButton();
+        markMessagesAsRead();  // 🔥 FIXED: Proper method call
 
         return view;
     }
@@ -97,6 +98,24 @@ public class ChatFragment extends Fragment {
         recyclerMessages = view.findViewById(R.id.recycler_messages);
         etMessage = view.findViewById(R.id.et_message);
         btnSend = view.findViewById(R.id.btn_send);
+    }
+
+    // 🔥 MARK MESSAGES AS READ - SEPARATE METHOD (FIXED!)
+    private void markMessagesAsRead() {
+        db.collection("chats").document(chatId)
+                .collection("messages")
+                .whereEqualTo("receiverId", currentUserId)
+                .whereEqualTo("isRead", false)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (var doc : querySnapshot.getDocuments()) {
+                        doc.getReference().update("isRead", true);
+                    }
+                    Log.d(TAG, "✅ Marked " + querySnapshot.size() + " messages as read");
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Failed to mark messages as read", e);
+                });
     }
 
     // 🔥 CLEANED UP: Production-ready online status
@@ -129,7 +148,6 @@ public class ChatFragment extends Fragment {
                             tvOnlineStatus.setTextColor(0xFF4CAF50); // Green
                         } else if (lastSeen != null) {
                             try {
-                                // ✅ SIMPLIFIED IST FORMATTING (production ready)
                                 Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
                                 cal.setTimeInMillis(lastSeen);
                                 SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
@@ -224,12 +242,14 @@ public class ChatFragment extends Fragment {
         message.receiverId = otherUserId;
         message.message = text;
         message.timestamp = System.currentTimeMillis();
+        message.isRead = false;  // 🔥 NEW: Unread by default
 
         db.collection("chats").document(chatId)
                 .collection("messages")
                 .add(message)
                 .addOnSuccessListener(docRef -> {
                     Log.d(TAG, "📤 Message sent: " + text);
+                    etMessage.setText("");  // Clear input
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to send message", e);

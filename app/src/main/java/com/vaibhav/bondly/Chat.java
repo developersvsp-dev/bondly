@@ -9,7 +9,7 @@ public class Chat {
     public String lastMessage;
     public long timestamp;
     public String otherUserId;
-
+    public int unreadCount = 0;
     public Chat() {}
 }
 

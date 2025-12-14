@@ -64,7 +64,7 @@ public class MatchesAdapter extends RecyclerView.Adapter<MatchesAdapter.UserView
 
         Map<String, Object> chatData = new HashMap<>();
         chatData.put("users", Arrays.asList(currentUserId, otherUserId));
-        chatData.put("lastMessage", "Say hi to start chatting!");
+        chatData.put("lastMessage", "");
         chatData.put("timestamp", System.currentTimeMillis());
 
         FirebaseFirestore.getInstance().collection("chats")

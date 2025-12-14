@@ -39,30 +39,40 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     @Override
     public void onBindViewHolder(@NonNull ChatViewHolder holder, int position) {
         Chat chat = chatsList.get(position);
-
-        // 🔥 FIX: Ensure correct otherUserId
         String otherUserId = getOtherUserId(chat);
-        Log.d("ChatAdapter", "Chat: " + chat.chatId + " | Other: " + otherUserId);
 
-        // ✅ Load other user details
+        // Load user details
         db.collection("users").document(otherUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         String name = documentSnapshot.getString("name");
                         String photoUrl = documentSnapshot.getString("photoUrl");
-
                         holder.nameText.setText(name != null ? name : "Unknown User");
 
-                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(context).load(photoUrl).into(holder.profileImage);
-                        }
+                        Glide.with(context)
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_person_placeholder)
+                                .error(R.drawable.ic_person_placeholder)
+                                .circleCrop()
+                                .into(holder.profileImage);
                     }
                 });
 
-        holder.lastMessageText.setText(chat.lastMessage != null ? chat.lastMessage : "Say hi to start chatting!");
+        // Last message
+        holder.lastMessageText.setText(chat.lastMessage != null ? chat.lastMessage : "No messages yet");
+
+        // Time
         holder.timeText.setText(formatTime(chat.timestamp));
 
-        // ✅ TAP CHAT TO OPEN
+        // 🔥 UNREAD COUNT BADGE ONLY (NO DOT)
+        if (chat.unreadCount > 0) {
+            holder.tvUnreadCount.setVisibility(View.VISIBLE);
+            holder.tvUnreadCount.setText(chat.unreadCount > 99 ? "99+" : String.valueOf(chat.unreadCount));
+        } else {
+            holder.tvUnreadCount.setVisibility(View.GONE);
+        }
+
+        // Open chat
         holder.itemView.setOnClickListener(v -> openChat(chat, otherUserId));
     }
 
@@ -71,35 +81,17 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         return chatsList.size();
     }
 
-    // 🔥 CRITICAL FIX: Get CORRECT other user (not current user)
     private String getOtherUserId(Chat chat) {
         if (chat.users != null && chat.users.size() == 2) {
-            // 🔥 FORCE CORRECT ORDER: Return NON-current user
             String user1 = chat.users.get(0);
             String user2 = chat.users.get(1);
-
-            Log.d("ChatAdapter", "Users array: [" + user1 + ", " + user2 + "] | Current: " + currentUserId);
-
-            if (user1.equals(currentUserId)) {
-                return user2;  // ✅ OTHER USER
-            } else {
-                return user1;  // ✅ OTHER USER
-            }
+            return user1.equals(currentUserId) ? user2 : user1;
         }
         return "unknown";
     }
 
-
-    // 🔥 FIXED: Pass CORRECT otherUserId
     private void openChat(Chat chat, String otherUserId) {
-        Log.d("ChatAdapter", "Opening chat with otherUserId: " + otherUserId);
-
-        ChatFragment chatFragment = ChatFragment.newInstance(
-                chat.chatId,
-                otherUserId,        // ✅ CORRECT OTHER USER
-                currentUserId       // ✅ CURRENT USER
-        );
-
+        ChatFragment chatFragment = ChatFragment.newInstance(chat.chatId, otherUserId, currentUserId);
         ((AppCompatActivity) context).getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.fragment_container, chatFragment)
@@ -114,7 +106,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
 
     static class ChatViewHolder extends RecyclerView.ViewHolder {
         ImageView profileImage;
-        TextView nameText, lastMessageText, timeText;
+        TextView nameText, lastMessageText, timeText, tvUnreadCount;
+        // View unreadDot;  // 🔥 REMOVED - NO MORE DOT
 
         public ChatViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -122,6 +115,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             nameText = itemView.findViewById(R.id.tv_name);
             lastMessageText = itemView.findViewById(R.id.tv_last_message);
             timeText = itemView.findViewById(R.id.tv_time);
+            tvUnreadCount = itemView.findViewById(R.id.tv_unread_count);
+            // unreadDot removed completely
         }
     }
 }
