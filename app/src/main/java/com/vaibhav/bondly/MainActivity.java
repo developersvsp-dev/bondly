@@ -17,6 +17,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -116,8 +117,26 @@ public class MainActivity extends AppCompatActivity {
         showHeader("Lifemate");
         isNavigationSetup = true;
         Log.d(TAG, "✅ APP READY on FEED - User ID: " + mAuth.getCurrentUser().getUid());
+        // 🔥 ADD FCM TOKEN REGISTRATION HERE
+        registerFCMToken();
     }
+    private void registerFCMToken() {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                String token = task.getResult();
+                String uid = mAuth.getCurrentUser().getUid();
+                Log.d(TAG, "✅ FCM Token saved: " + token.substring(0, 20) + "...");
 
+                Map<String, Object> tokenData = new HashMap<>();
+                tokenData.put("fcmToken", token);
+
+                FirebaseFirestore.getInstance()
+                        .collection("users").document(uid)
+                        .set(tokenData, com.google.firebase.firestore.SetOptions.merge())
+                        .addOnFailureListener(e -> Log.e(TAG, "Failed to save FCM token", e));
+            }
+        });
+    }
     private void loadFragment(Fragment fragment) {
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);

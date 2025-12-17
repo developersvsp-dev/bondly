@@ -34,7 +34,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
 
     public interface OnChatSelectedListener {
         void onChatSelected(int position, boolean isChecked);
-        void onSelectionCountChanged(int count); // 🔥 NEW: For title updates
+        void onSelectionCountChanged(int count);
     }
 
     public ChatAdapter(ArrayList<Chat> chatsList, Context context, String currentUserId, OnChatSelectedListener listener) {
@@ -47,7 +47,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     public void setSelectionMode(boolean selectionMode) {
         this.selectionMode = selectionMode;
         if (!selectionMode) {
-            selectedPositions.clear(); // 🔥 Clear selection when exiting
+            selectedPositions.clear();
         }
         notifyDataSetChanged();
     }
@@ -99,22 +99,16 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         Chat chat = chatsList.get(position);
         String otherUserId = getOtherUserId(chat);
 
-        // 🔥 PERFECT CHECKBOX BINDING ORDER
+        // 🔥 PERFECT CHECKBOX BINDING
         holder.checkbox.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
-
-        // 1. REMOVE listener first (CRITICAL!)
         holder.checkbox.setOnCheckedChangeListener(null);
-
-        // 2. Set checked state
         holder.checkbox.setChecked(isPositionSelected(position));
-
-        // 3. ADD listener back
         holder.checkbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            Log.d("ChatAdapter", "Checkbox clicked: position=" + position + ", isChecked=" + isChecked);
+            Log.d("ChatAdapter", "Checkbox: pos=" + position + ", checked=" + isChecked);
             toggleSelection(position, isChecked);
         });
 
-        // 🔥 LOAD USER DATA (async - doesn't block checkbox)
+        // 🔥 LOAD USER DATA (async)
         db.collection("users").document(otherUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
@@ -130,10 +124,11 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
                     }
                 });
 
-        // 🔥 OTHER UI ELEMENTS
+        // 🔥 REAL-TIME LAST MESSAGE + UNREAD COUNT
         holder.lastMessageText.setText(chat.lastMessage != null ? chat.lastMessage : "No messages yet");
         holder.timeText.setText(formatTime(chat.timestamp));
 
+        // 🔥 UNREAD COUNT (Updates live from Firestore)
         if (chat.unreadCount > 0) {
             holder.tvUnreadCount.setVisibility(View.VISIBLE);
             holder.tvUnreadCount.setText(chat.unreadCount > 99 ? "99+" : String.valueOf(chat.unreadCount));
@@ -141,15 +136,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             holder.tvUnreadCount.setVisibility(View.GONE);
         }
 
-        // 🔥 ITEM CLICK HANDLER
+        // 🔥 CLICK HANDLER
         holder.itemView.setOnClickListener(v -> {
-            Log.d("ChatAdapter", "Item clicked: position=" + position + ", selectionMode=" + selectionMode);
+            Log.d("ChatAdapter", "Item click: pos=" + position + ", selection=" + selectionMode);
             if (selectionMode) {
-                // 🔥 TOGGLE CHECKBOX ON ITEM TAP
                 boolean newState = !isPositionSelected(position);
                 holder.checkbox.setChecked(newState);
             } else {
-                // 🔥 NORMAL CHAT OPEN
                 openChat(chat, otherUserId);
             }
         });
@@ -164,9 +157,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         notifyItemChanged(position);
         if (listener != null) {
             listener.onChatSelected(position, isChecked);
-            listener.onSelectionCountChanged(getSelectedCount()); // 🔥 Update title
+            listener.onSelectionCountChanged(getSelectedCount());
         }
-        Log.d("ChatAdapter", "Selection updated: count=" + getSelectedCount());
     }
 
     @Override
@@ -174,7 +166,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         return chatsList.size();
     }
 
-    // 🔥 UTILITY METHODS
     private String getOtherUserId(Chat chat) {
         if (chat.users != null && chat.users.size() == 2) {
             String user1 = chat.users.get(0);
@@ -186,7 +177,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
 
     private void openChat(Chat chat, String otherUserId) {
         if (listener != null) {
-            listener.onChatSelected(-1, false); // Signal normal chat open
+            listener.onChatSelected(-1, false);
         }
         ChatFragment chatFragment = ChatFragment.newInstance(chat.chatId, otherUserId, currentUserId);
         ((AppCompatActivity) context).getSupportFragmentManager()
@@ -194,6 +185,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
                 .replace(R.id.fragment_container, chatFragment)
                 .addToBackStack("chat")
                 .commit();
+        Log.d("ChatAdapter", "✅ Opened chat: " + chat.chatId);
     }
 
     private String formatTime(long timestamp) {

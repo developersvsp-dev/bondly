@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.FieldValue;
 import java.util.ArrayList;
@@ -32,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelectedListener {
+    private static final String TAG = "InboxFragment";
+
     private RecyclerView recyclerView;
     private ChatAdapter adapter;
     private ArrayList<Chat> chatsList;
@@ -40,10 +43,14 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
     private Toolbar toolbar;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    // 🔥 REAL-TIME LISTENERS
+    private ListenerRegistration chatsListener;
+    private Map<String, ListenerRegistration> unreadListeners = new HashMap<>();  // 🔥 LIVE unread counts
+
     // 🔥 MULTI-SELECT MODE
     private boolean isSelectionMode = false;
     private Set<Integer> selectedPositions = new HashSet<>();
-    private Menu toolbarMenu; // 🔥 For 3-dots control
+    private Menu toolbarMenu;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -61,7 +68,6 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
 
         db = FirebaseFirestore.getInstance();
 
-        // 🔥 YOUR ORIGINAL WORKING TOOLBAR SETUP
         setupToolbar();
         loadChats();
         setupSwipeToDelete();
@@ -69,24 +75,22 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
         return view;
     }
 
-    // 🔥 YOUR ORIGINAL WORKING TOOLBAR (KEEPS 3-DOTS WORKING)
     private void setupToolbar() {
         if (toolbar == null || getContext() == null) return;
 
         toolbar.getMenu().clear();
         toolbar.setTitle("Chats");
-        toolbar.inflateMenu(R.menu.chat_options_menu); // YOUR ORIGINAL MENU
+        toolbar.inflateMenu(R.menu.chat_options_menu);
 
         toolbar.setOnMenuItemClickListener(item -> {
             tintMenuIconWhite(item);
             if (item.getItemId() == R.id.action_delete_chat) {
-                enterSelectionMode(); // 🔥 THIS WORKS!
+                enterSelectionMode();
             }
             return true;
         });
     }
 
-    // 🔥 INTERFACE IMPLEMENTATION
     @Override
     public void onChatSelected(int position, boolean isChecked) {
         if (position == -1) {
@@ -107,7 +111,6 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
         updateSelectionUI();
     }
 
-    // 🔥 UPDATE UI (Title + Delete button)
     private void updateSelectionUI() {
         updateToolbarTitle();
 
@@ -116,13 +119,11 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
             return;
         }
 
-        // 🔥 Switch to delete menu when selected
         if (!selectedPositions.isEmpty() && isSelectionMode) {
             showDeleteMenu();
         }
     }
 
-    // 🔥 ENTER SELECTION MODE
     private void enterSelectionMode() {
         isSelectionMode = true;
         selectedPositions.clear();
@@ -131,16 +132,14 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
         Toast.makeText(getContext(), "Tap chats to select", Toast.LENGTH_SHORT).show();
     }
 
-    // 🔥 EXIT SELECTION MODE
     private void exitSelectionMode() {
         isSelectionMode = false;
         selectedPositions.clear();
         adapter.setSelectionMode(false);
         toolbar.setTitle("Chats");
-        setupToolbar(); // 🔥 RESTORES 3-DOTS
+        setupToolbar();
     }
 
-    // 🔥 UPDATE TITLE
     private void updateToolbarTitle() {
         if (!selectedPositions.isEmpty()) {
             toolbar.setTitle(selectedPositions.size() + " selected");
@@ -151,7 +150,6 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
         }
     }
 
-    // 🔥 SHOW DELETE BUTTON (replaces 3-dots)
     private void showDeleteMenu() {
         toolbar.getMenu().clear();
         toolbar.inflateMenu(R.menu.delete_selection_menu);
@@ -163,7 +161,6 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
         });
     }
 
-    // 🔥 DELETE SELECTED CHATS
     private void deleteSelectedChats() {
         if (selectedPositions.isEmpty()) {
             Toast.makeText(getContext(), "No chats selected", Toast.LENGTH_SHORT).show();
@@ -185,7 +182,6 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
                     exitSelectionMode();
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> {
-                    // Cancel - go back to selection
                     showDeleteMenu();
                 })
                 .show();
@@ -206,7 +202,6 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
                 });
     }
 
-    // 🔥 YOUR ORIGINAL METHODS (unchanged)
     private void tintMenuIconWhite(MenuItem item) {
         Drawable icon = item.getIcon();
         if (icon != null) {
@@ -234,13 +229,18 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
         new ItemTouchHelper(callback).attachToRecyclerView(recyclerView);
     }
 
+    // 🔥 PERFECT REAL-TIME CHATS LISTENER
     private void loadChats() {
-        db.collection("chats")
+        if (chatsListener != null) {
+            chatsListener.remove();
+        }
+
+        chatsListener = db.collection("chats")
                 .whereArrayContains("users", currentUserId)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((snapshot, error) -> {
                     if (error != null) {
-                        Log.e("InboxFragment", "❌ Error: " + error.getMessage());
+                        Log.e(TAG, "❌ Chats listen failed: " + error.getMessage());
                         return;
                     }
 
@@ -266,38 +266,73 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
                             if (!uniqueByPair.containsKey(key)) {
                                 chat.otherUserId = u1.equals(currentUserId) ? u2 : u1;
                                 uniqueByPair.put(key, chat);
-                                checkUnreadCount(chat);
+                                calculateUnreadCount(chat);  // 🔥 LIVE unread count
                             }
                         }
                         chatsList.addAll(uniqueByPair.values());
                     }
+
+                    Log.d(TAG, "✅ LIVE Chats updated: " + chatsList.size());
                     if (adapter != null) {
                         adapter.notifyDataSetChanged();
                     }
                 });
     }
 
-    private void checkUnreadCount(Chat chat) {
-        if (chat == null || chat.chatId == null || getContext() == null) return;
+    // 🔥 LIVE UNREAD COUNT LISTENER (PER CHAT)
+    private void calculateUnreadCount(Chat chat) {
+        if (chat == null || chat.chatId == null || currentUserId == null) return;
 
-        db.collection("chats").document(chat.chatId)
+        // 🔥 Clean up old listener
+        String chatIdKey = chat.chatId;
+        if (unreadListeners.containsKey(chatIdKey)) {
+            unreadListeners.get(chatIdKey).remove();
+        }
+
+        // 🔥 NEW LIVE unread listener
+        ListenerRegistration unreadListener = db.collection("chats").document(chat.chatId)
                 .collection("messages")
                 .whereEqualTo("receiverId", currentUserId)
                 .whereEqualTo("isRead", false)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Unread listen failed: " + error.getMessage());
+                        return;
+                    }
+
                     mainHandler.post(() -> {
                         if (getActivity() != null && chat != null && adapter != null) {
-                            chat.unreadCount = querySnapshot.size();
-                            adapter.notifyDataSetChanged();
+                            chat.unreadCount = snapshot != null ? snapshot.size() : 0;
+                            int position = chatsList.indexOf(chat);
+                            if (position != -1) {
+                                adapter.notifyItemChanged(position);
+                            }
+                            Log.d(TAG, "🔴 LIVE Unread " + chat.chatId.substring(0, 8) + "...: " + chat.unreadCount);
                         }
                     });
                 });
+
+        unreadListeners.put(chatIdKey, unreadListener);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
+        // 🔥 PERFECT CLEANUP - ALL LISTENERS
+        if (chatsListener != null) {
+            chatsListener.remove();
+            chatsListener = null;
+        }
+
+        // 🔥 Remove ALL unread listeners
+        for (ListenerRegistration listener : unreadListeners.values()) {
+            if (listener != null) {
+                listener.remove();
+            }
+        }
+        unreadListeners.clear();
+
         if (adapter != null) {
             adapter = null;
         }

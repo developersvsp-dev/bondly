@@ -18,12 +18,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 
 public class ChatFragment extends Fragment {
@@ -37,6 +39,10 @@ public class ChatFragment extends Fragment {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
 
+    // 🔥 LIFECYCLE-SAFE LISTENERS
+    private ListenerRegistration messagesListener;
+    private ListenerRegistration userListener;
+
     // UI Elements
     private TextView tvChatUserName, tvOnlineStatus;
     private ImageView ivChatProfile;
@@ -48,6 +54,7 @@ public class ChatFragment extends Fragment {
     private MessageAdapter messageAdapter;
     private ArrayList<Message> messagesList;
 
+    // 🔥 PUBLIC newInstance()
     public static ChatFragment newInstance(String chatId, String otherUserId, String currentUserId) {
         ChatFragment fragment = new ChatFragment();
         Bundle args = new Bundle();
@@ -77,7 +84,6 @@ public class ChatFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
 
-        // 🔥 HIDE BOTTOM NAV (WhatsApp style)
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).hideBottomNavigation();
         }
@@ -86,7 +92,7 @@ public class ChatFragment extends Fragment {
         loadChatUserHeader(view);
         setupMessageRecycler();
         setupSendButton();
-        markMessagesAsRead();  // 🔥 FIXED: Proper method call
+        markMessagesAsRead();
 
         return view;
     }
@@ -100,7 +106,6 @@ public class ChatFragment extends Fragment {
         btnSend = view.findViewById(R.id.btn_send);
     }
 
-    // 🔥 MARK MESSAGES AS READ - SEPARATE METHOD (FIXED!)
     private void markMessagesAsRead() {
         db.collection("chats").document(chatId)
                 .collection("messages")
@@ -118,14 +123,17 @@ public class ChatFragment extends Fragment {
                 });
     }
 
-    // 🔥 CLEANED UP: Production-ready online status
     private void loadChatUserHeader(View view) {
         if (tvChatUserName == null || otherUserId == null || otherUserId.isEmpty() || db == null) {
             if (tvChatUserName != null) tvChatUserName.setText("Chat");
             return;
         }
 
-        db.collection("users").document(otherUserId)
+        if (userListener != null) {
+            userListener.remove();
+        }
+
+        userListener = db.collection("users").document(otherUserId)
                 .addSnapshotListener((snapshot, error) -> {
                     if (error != null || !snapshot.exists()) {
                         if (tvChatUserName != null) tvChatUserName.setText("User");
@@ -141,11 +149,10 @@ public class ChatFragment extends Fragment {
                         tvChatUserName.setText(name != null ? name : "User");
                     }
 
-                    // 🔥 WHATSAPP-STYLE STATUS
                     if (tvOnlineStatus != null) {
                         if (Boolean.TRUE.equals(isOnline)) {
                             tvOnlineStatus.setText("online");
-                            tvOnlineStatus.setTextColor(0xFF4CAF50); // Green
+                            tvOnlineStatus.setTextColor(0xFF4CAF50);
                         } else if (lastSeen != null) {
                             try {
                                 Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
@@ -155,7 +162,7 @@ public class ChatFragment extends Fragment {
                                 String timeStr = sdf.format(cal.getTime());
 
                                 tvOnlineStatus.setText("last seen " + timeStr);
-                                tvOnlineStatus.setTextColor(0xFF757575); // Grey
+                                tvOnlineStatus.setTextColor(0xFF757575);
                             } catch (Exception e) {
                                 tvOnlineStatus.setText("offline");
                                 tvOnlineStatus.setTextColor(0xFF757575);
@@ -166,7 +173,6 @@ public class ChatFragment extends Fragment {
                         }
                     }
 
-                    // 🔥 IMPROVED GLIDE (handles no photo perfectly)
                     if (ivChatProfile != null) {
                         if (photoUrl != null && !photoUrl.isEmpty()) {
                             Glide.with(this)
@@ -197,7 +203,11 @@ public class ChatFragment extends Fragment {
     }
 
     private void loadMessages() {
-        db.collection("chats").document(chatId)
+        if (messagesListener != null) {
+            messagesListener.remove();
+        }
+
+        messagesListener = db.collection("chats").document(chatId)
                 .collection("messages")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener((snapshot, error) -> {
@@ -206,7 +216,7 @@ public class ChatFragment extends Fragment {
                         return;
                     }
 
-                    if (messagesList == null) return;
+                    if (messagesList == null || messageAdapter == null) return;
 
                     messagesList.clear();
                     if (snapshot != null) {
@@ -217,10 +227,8 @@ public class ChatFragment extends Fragment {
                             }
                         }
                     }
-                    if (messageAdapter != null) {
-                        messageAdapter.notifyDataSetChanged();
-                        scrollToBottom();
-                    }
+                    messageAdapter.notifyDataSetChanged();
+                    scrollToBottom();
                 });
     }
 
@@ -236,24 +244,79 @@ public class ChatFragment extends Fragment {
         });
     }
 
+    // 🔥 FIXED: Updates CHAT document for real-time inbox!
     private void sendMessage(String text) {
         Message message = new Message();
         message.senderId = currentUserId;
         message.receiverId = otherUserId;
         message.message = text;
         message.timestamp = System.currentTimeMillis();
-        message.isRead = false;  // 🔥 NEW: Unread by default
+        message.isRead = false;
 
         db.collection("chats").document(chatId)
                 .collection("messages")
                 .add(message)
                 .addOnSuccessListener(docRef -> {
                     Log.d(TAG, "📤 Message sent: " + text);
-                    etMessage.setText("");  // Clear input
+
+                    // 🔥 TRIGGER INBOX UPDATE
+                    Map<String, Object> chatUpdate = new HashMap<>();
+                    chatUpdate.put("lastMessage", text);
+                    chatUpdate.put("timestamp", message.timestamp);
+
+                    db.collection("chats").document(chatId)
+                            .update(chatUpdate)
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "✅ CHAT UPDATED - INBOX REFRESHES LIVE!");
+                                getRecipientTokenForNotification(text);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "❌ Chat metadata update failed", e);
+                            });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to send message", e);
+                    Log.e(TAG, "❌ Message send failed", e);
                 });
+    }
+
+    private void getRecipientTokenForNotification(String messageText) {
+        db.collection("users").document(currentUserId)
+                .get()
+                .addOnSuccessListener(senderSnapshot -> {
+                    String senderName = senderSnapshot.getString("name");
+                    if (senderName == null || senderName.isEmpty()) {
+                        senderName = "Someone";
+                    }
+                    String finalSenderName = senderName;
+
+                    db.collection("users").document(otherUserId)
+                            .get()
+                            .addOnSuccessListener(recipientSnapshot -> {
+                                if (!recipientSnapshot.exists()) {
+                                    Log.d(TAG, "❌ Recipient not found");
+                                    return;
+                                }
+
+                                String recipientToken = recipientSnapshot.getString("fcmToken");
+                                if (recipientToken == null || recipientToken.isEmpty()) {
+                                    Log.d(TAG, "❌ No FCM token");
+                                    return;
+                                }
+
+                                Log.d(TAG, "🚀=== FCM READY ===");
+                                Log.d(TAG, "👤 Recipient: " + otherUserId);
+                                Log.d(TAG, "🔑 TOKEN: " + recipientToken);
+                                Log.d(TAG, "💬 TITLE: " + finalSenderName);
+                                Log.d(TAG, "📝 BODY: " + messageText);
+                                Log.d(TAG, "🔥 COPY TO FIREBASE CONSOLE");
+                            })
+                            .addOnFailureListener(e ->
+                                    Log.e(TAG, "❌ Token fetch failed", e)
+                            );
+                })
+                .addOnFailureListener(e ->
+                        Log.e(TAG, "❌ Sender fetch failed", e)
+                );
     }
 
     private void scrollToBottom() {
@@ -267,6 +330,19 @@ public class ChatFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
+        if (messagesListener != null) {
+            messagesListener.remove();
+            messagesListener = null;
+        }
+        if (userListener != null) {
+            userListener.remove();
+            userListener = null;
+        }
+
+        messageAdapter = null;
+        messagesList = null;
+
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).showBottomNavigation();
         }
