@@ -4,30 +4,37 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.google.android.material.imageview.ShapeableImageView;
 import java.util.List;
 
 public class ProfileAdapter extends RecyclerView.Adapter<ProfileAdapter.ProfileViewHolder> {
     private List<Profile> profiles;
     private OnProfileClickListener profileListener;
-    private OnLikeClickListener likeListener;  // 🔥 NEW
+    private OnLikeClickListener likeListener;
+    private OnMessageClickListener messageListener;
 
     public interface OnProfileClickListener {
         void onProfileClick(Profile profile);
     }
 
-    public interface OnLikeClickListener {  // 🔥 NEW
+    public interface OnLikeClickListener {
         void onLikeClick(String targetUid, boolean isLike);
     }
 
-    public ProfileAdapter(List<Profile> profiles, OnProfileClickListener profileListener, OnLikeClickListener likeListener) {
+    public interface OnMessageClickListener {
+        void onMessageClick(String targetUid);
+    }
+
+    public ProfileAdapter(List<Profile> profiles, OnProfileClickListener profileListener,
+                          OnLikeClickListener likeListener, OnMessageClickListener messageListener) {
         this.profiles = profiles;
         this.profileListener = profileListener;
         this.likeListener = likeListener;
+        this.messageListener = messageListener;
     }
 
     @NonNull
@@ -50,34 +57,33 @@ public class ProfileAdapter extends RecyclerView.Adapter<ProfileAdapter.ProfileV
     }
 
     class ProfileViewHolder extends RecyclerView.ViewHolder {
-        ImageView ivProfile;
-        TextView tvName, tvPhone, tvGender, tvBio;
-        ImageButton ibLike;  // 🔥 NEW
+        ShapeableImageView ivProfile;
+        TextView tvName, tvGender, tvBio;
+        ImageButton ibLike, ibMessage;
 
         public ProfileViewHolder(@NonNull View itemView) {
             super(itemView);
             ivProfile = itemView.findViewById(R.id.ivProfile);
             tvName = itemView.findViewById(R.id.tvName);
-            tvPhone = itemView.findViewById(R.id.tvPhone);
             tvGender = itemView.findViewById(R.id.tvGender);
             tvBio = itemView.findViewById(R.id.tvBio);
-            ibLike = itemView.findViewById(R.id.ibLike);  // 🔥 NEW
+            ibLike = itemView.findViewById(R.id.ibLike);
+            ibMessage = itemView.findViewById(R.id.ibMessage);
         }
 
         void bind(Profile profile) {
             tvName.setText(profile.getName());
-            tvGender.setText(profile.getGender() != null ? profile.getGender() : "Not set");
+            tvGender.setText(profile.getGender() != null ? "(" + profile.getGender() + ")" : "");
             tvBio.setText(profile.getBio() != null ? profile.getBio() : "No bio");
-            tvBio.setVisibility(View.VISIBLE);
 
             // Photo loading
             if (profile.getPhotoUrl() != null && !profile.getPhotoUrl().isEmpty()) {
                 Glide.with(ivProfile).load(profile.getPhotoUrl()).circleCrop().into(ivProfile);
             } else {
-                ivProfile.setImageResource(android.R.drawable.ic_menu_gallery);
+                ivProfile.setImageResource(R.drawable.ic_person);
             }
 
-            // 🔥 LIKE BUTTON
+            // 🔥 LIKE BUTTON (Top Right)
             ibLike.setImageResource(
                     profile.isLikedByMe() ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline
             );
@@ -86,8 +92,16 @@ public class ProfileAdapter extends RecyclerView.Adapter<ProfileAdapter.ProfileV
                 if (likeListener != null) {
                     likeListener.onLikeClick(profile.getUid(), willLike);
                 }
-                profile.setLikedByMe(willLike);  // Update immediately
+                profile.setLikedByMe(willLike);
                 ibLike.setImageResource(willLike ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
+            });
+
+            // 🔥 MESSAGE BUTTON (Bottom Right)
+            ibMessage.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && messageListener != null) {
+                    messageListener.onMessageClick(profiles.get(position).getUid());
+                }
             });
 
             // Profile click

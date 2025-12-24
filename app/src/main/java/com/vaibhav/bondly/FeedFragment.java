@@ -12,6 +12,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -33,23 +34,21 @@ public class FeedFragment extends Fragment {
     private List<Profile> profiles;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
-    private Map<String, Boolean> myLikes = new HashMap<>(); // 🔥 Track my likes
+    private Map<String, Boolean> myLikes = new HashMap<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_feed, container, false);
 
-        // Initialize views with null checks
         rvFeed = view.findViewById(R.id.rvFeed);
         progressBar = view.findViewById(R.id.progressBar);
         tvWelcome = view.findViewById(R.id.tvWelcome);
         Button premiumBtn = view.findViewById(R.id.btnGoPremium);
 
-        // Setup Firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // 🔥 Setup RecyclerView with LIKE SUPPORT
+        // 🔥 UPDATED: 3 CALLBACKS (ProfileClick + Like + Message)
         profiles = new ArrayList<>();
         adapter = new ProfileAdapter(profiles,
                 profile -> {
@@ -57,14 +56,15 @@ public class FeedFragment extends Fragment {
                         Toast.makeText(getContext(), "View " + profile.getName() + "'s profile", Toast.LENGTH_SHORT).show();
                     }
                 },
-                (targetUid, isLike) -> handleLike(targetUid, isLike) // 🔥 LIKE CALLBACK
+                (targetUid, isLike) -> handleLike(targetUid, isLike),
+                targetUid -> handleMessage(targetUid)  // 🔥 NEW MESSAGE CALLBACK
         );
+
         if (rvFeed != null) {
             rvFeed.setLayoutManager(new LinearLayoutManager(getContext()));
             rvFeed.setAdapter(adapter);
         }
 
-        // Premium button
         if (premiumBtn != null) {
             premiumBtn.setOnClickListener(v -> {
                 if (getActivity() != null) {
@@ -73,13 +73,10 @@ public class FeedFragment extends Fragment {
             });
         }
 
-        // Load profiles after fragment is ready
         new Handler().postDelayed(this::loadProfiles, 200);
-
         return view;
     }
 
-    // 🔥 Load profiles + CHECK EXISTING LIKES FROM FIRESTORE
     private void loadProfiles() {
         if (getContext() == null || mAuth.getCurrentUser() == null) return;
 
@@ -88,7 +85,6 @@ public class FeedFragment extends Fragment {
 
         String currentUserId = mAuth.getCurrentUser().getUid();
 
-        // 🔥 STEP 1: Load MY LIKES from Firestore
         db.collection("likes")
                 .whereEqualTo("likerId", currentUserId)
                 .get()
@@ -102,13 +98,11 @@ public class FeedFragment extends Fragment {
                         }
                     }
                     Log.d(TAG, "✅ Loaded " + myLikes.size() + " existing likes");
-
-                    // 🔥 STEP 2: Load users (myLikes is populated)
                     loadUsersAfterLikes(currentUserId);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to load my likes", e);
-                    loadUsersAfterLikes(currentUserId); // Fallback
+                    loadUsersAfterLikes(currentUserId);
                 });
     }
 
@@ -122,11 +116,8 @@ public class FeedFragment extends Fragment {
 
                     for (var doc : querySnapshot) {
                         String uid = doc.getId();
-
-                        // 🔥 SKIP CURRENT USER
                         if (uid.equals(currentUserId)) continue;
 
-                        // 🔥 LOAD ALL FIELDS + LIKES DATA
                         String name = doc.getString("name");
                         String photoUrl = doc.getString("photoUrl");
                         String gender = doc.getString("gender");
@@ -185,7 +176,6 @@ public class FeedFragment extends Fragment {
         likeData.put("isLike", isLike);
 
         if (isLike) {
-            // ADD LIKE
             db.collection("likes")
                     .document(likeDocId)
                     .set(likeData)
@@ -199,7 +189,6 @@ public class FeedFragment extends Fragment {
                         Toast.makeText(getContext(), "Like failed", Toast.LENGTH_SHORT).show();
                     });
         } else {
-            // REMOVE LIKE
             db.collection("likes")
                     .document(likeDocId)
                     .delete()
@@ -213,10 +202,7 @@ public class FeedFragment extends Fragment {
                     });
         }
 
-        // Update local tracking immediately
         myLikes.put(targetUid, isLike);
-
-        // Update UI
         int position = findProfilePosition(targetUid);
         if (position != -1) {
             profiles.get(position).setLikedByMe(isLike);
@@ -224,12 +210,36 @@ public class FeedFragment extends Fragment {
         }
     }
 
-    // 🔥 Update likes count in target user's document
+    // 🔥 NEW: Handle message button clicks
+    private void handleMessage(String targetUid) {
+        if (mAuth.getCurrentUser() == null || getContext() == null) return;
+
+        String currentUid = mAuth.getCurrentUser().getUid();
+
+        // Create unique chatId (alphabetically sorted)
+        String chatId = currentUid.compareTo(targetUid) < 0
+                ? currentUid + "_" + targetUid
+                : targetUid + "_" + currentUid;
+
+        // Navigate to ChatFragment
+        ChatFragment chatFragment = ChatFragment.newInstance(chatId, targetUid, currentUid);
+
+        if (getActivity() instanceof AppCompatActivity) {
+            ((AppCompatActivity) getActivity()).getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, chatFragment)
+                    .addToBackStack("chat")
+                    .commit();
+        }
+
+        Log.d(TAG, "💬 Opening chat: " + chatId + " with " + targetUid);
+        Toast.makeText(getContext(), "Opening chat...", Toast.LENGTH_SHORT).show();
+    }
+
     private void updateLikesCount(String targetUid, int increment) {
         db.collection("users").document(targetUid)
                 .update("likesCount", com.google.firebase.firestore.FieldValue.increment(increment))
                 .addOnFailureListener(e -> {
-                    // Field doesn't exist, create it
                     Map<String, Object> updateData = new HashMap<>();
                     updateData.put("likesCount", increment);
                     db.collection("users").document(targetUid)

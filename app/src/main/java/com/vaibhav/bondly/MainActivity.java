@@ -12,6 +12,8 @@ import android.view.View;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import androidx.appcompat.widget.Toolbar;
+
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -34,7 +36,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+// 🔥 FIX APP CHECK ERROR - Add BEFORE other Firebase calls
+//        FirebaseApp.initializeApp(this);
+//        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
+//                PlayIntegrityAppCheckProviderFactory.getInstance()
+//        );
         mAuth = FirebaseAuth.getInstance();
         splashView = findViewById(R.id.splash_view);
 
