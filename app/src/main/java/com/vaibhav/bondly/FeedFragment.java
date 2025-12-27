@@ -12,6 +12,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -36,6 +37,8 @@ public class FeedFragment extends Fragment {
     private FirebaseAuth mAuth;
     private Map<String, Boolean> myLikes = new HashMap<>();
 
+    // 🔥 REMOVED: isCheckingSubscription flag - CAUSES 2ND CLICK FAILURE
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_feed, container, false);
@@ -48,7 +51,6 @@ public class FeedFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // 🔥 UPDATED: 3 CALLBACKS (ProfileClick + Like + Message)
         profiles = new ArrayList<>();
         adapter = new ProfileAdapter(profiles,
                 profile -> {
@@ -57,7 +59,7 @@ public class FeedFragment extends Fragment {
                     }
                 },
                 (targetUid, isLike) -> handleLike(targetUid, isLike),
-                targetUid -> handleMessage(targetUid)  // 🔥 NEW MESSAGE CALLBACK
+                targetUid -> handleMessage(targetUid)
         );
 
         if (rvFeed != null) {
@@ -162,7 +164,6 @@ public class FeedFragment extends Fragment {
                 });
     }
 
-    // 🔥 Handle like button clicks
     private void handleLike(String targetUid, boolean isLike) {
         if (mAuth.getCurrentUser() == null || getContext() == null) return;
 
@@ -210,20 +211,71 @@ public class FeedFragment extends Fragment {
         }
     }
 
-    // 🔥 NEW: Handle message button clicks
+    // 🔥 PERFECT FIX: NO FLAG + MAIN THREAD + EVERY CLICK WORKS
     private void handleMessage(String targetUid) {
-        if (mAuth.getCurrentUser() == null || getContext() == null) return;
+        Log.d(TAG, "🚀 MESSAGE TAP - UID: " + (mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "NULL"));
 
+        if (mAuth.getCurrentUser() == null || getContext() == null) {
+            Log.d(TAG, "🚫 Auth/Context null");
+            return;
+        }
+
+        BillingManager billingManager = BillingManager.getInstance(getContext());
+        billingManager.checkSubscriptionStatus(isSubscribed -> {
+            Log.d(TAG, "🎯 CALLBACK FIRED: isSubscribed = " + isSubscribed);
+
+            if (getActivity() == null || getContext() == null) {
+                Log.d(TAG, "🚫 Fragment destroyed");
+                return;
+            }
+
+            // 🔥 MAIN THREAD GUARANTEE - DIALOG ALWAYS SHOWS
+            requireActivity().runOnUiThread(() -> {
+                if (isSubscribed) {
+                    Log.d(TAG, "✅ SUB ACTIVE - Opening chat");
+                    openChat(targetUid);
+                } else {
+                    Log.d(TAG, "❌ NO SUB - SHOWING DIALOG");
+
+                    // 🔥 TOAST PROOF + Unblockable Dialog
+                    Toast.makeText(requireContext(), "🚨 SUBSCRIBE TO CHAT!", Toast.LENGTH_LONG).show();
+
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("🔒 Send Messages")
+                            .setMessage("Subscribe for ₹150/month to unlock unlimited messaging!")
+                            .setCancelable(true)
+                            .setPositiveButton("Subscribe Now", (dialog, which) -> {
+                                Log.d(TAG, "👆 SUBSCRIBE BUTTON TAPPED");
+                                billingManager.launchSubscriptionPurchase(requireActivity(), subscribed -> {
+                                    Log.d(TAG, "💰 PURCHASE CALLBACK: " + subscribed);
+                                    if (subscribed) {
+                                        Toast.makeText(getContext(), "✅ Chat unlocked!", Toast.LENGTH_SHORT).show();
+                                        openChat(targetUid);
+                                    }
+                                });
+                            })
+                            .setNegativeButton("Cancel", (dialog, which) -> {
+                                Log.d(TAG, "❌ CANCEL TAPPED");
+                            })
+                            .setOnCancelListener(dialog -> {
+                                Log.d(TAG, "❌ DIALOG CANCELLED (back button)");
+                            })
+                            .setOnDismissListener(dialog -> {
+                                Log.d(TAG, "✅ DIALOG DISMISSED");
+                            })
+                            .show();
+                }
+            });
+        });
+    }
+
+    private void openChat(String targetUid) {
         String currentUid = mAuth.getCurrentUser().getUid();
-
-        // Create unique chatId (alphabetically sorted)
         String chatId = currentUid.compareTo(targetUid) < 0
                 ? currentUid + "_" + targetUid
                 : targetUid + "_" + currentUid;
 
-        // Navigate to ChatFragment
         ChatFragment chatFragment = ChatFragment.newInstance(chatId, targetUid, currentUid);
-
         if (getActivity() instanceof AppCompatActivity) {
             ((AppCompatActivity) getActivity()).getSupportFragmentManager()
                     .beginTransaction()
@@ -259,6 +311,7 @@ public class FeedFragment extends Fragment {
 
     private void showLoading(boolean show) {
         if (progressBar != null) progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (rvFeed != null) rvFeed.setLayoutManager(show ? null : new LinearLayoutManager(getContext()));
         if (rvFeed != null) rvFeed.setVisibility(show ? View.GONE : View.VISIBLE);
     }
 
@@ -271,12 +324,8 @@ public class FeedFragment extends Fragment {
                     if (getContext() == null || tvWelcome == null) return;
                     if (doc.exists()) {
                         String name = doc.getString("name");
-                        String gender = doc.getString("gender");
                         if (name != null) {
                             String welcome = "Welcome back, " + name + "!";
-//                            if (gender != null && !gender.isEmpty()) {
-//                                welcome += " (" + gender + ")";
-//                            }
                             tvWelcome.setText(welcome);
                         }
                     }

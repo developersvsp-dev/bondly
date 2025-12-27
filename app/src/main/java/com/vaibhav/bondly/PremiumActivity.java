@@ -39,47 +39,14 @@ public class PremiumActivity extends AppCompatActivity {
 
         Button buyBtn = findViewById(R.id.btnBuyPremium);
 
-        // -------------------------------
-        // 1️⃣ Setup Billing Client
-        // -------------------------------
-        billingClient = BillingClient.newBuilder(this)
-                .setListener(purchasesUpdatedListener)
-                .enablePendingPurchases(
-                        PendingPurchasesParams.newBuilder()
-                                .enableOneTimeProducts() // or enableSubscriptionProducts() for clarity
-                                .build()
-                )
-                .build();
-
-        // -------------------------------
-        // 2️⃣ Start Billing Connection
-        // -------------------------------
-        billingClient.startConnection(new BillingClientStateListener() {
-            @Override
-            public void onBillingSetupFinished(BillingResult billingResult) {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    Log.d("IAP", "Billing connected!");
-                    querySubscriptionProduct();
-                } else {
-                    Log.e("IAP", "Billing setup failed: " + billingResult.getDebugMessage());
-                }
-            }
-
-            @Override
-            public void onBillingServiceDisconnected() {
-                Log.e("IAP", "Billing disconnected!");
-            }
-        });
-
-        // -------------------------------
-        // 3️⃣ Buy Button Click
-        // -------------------------------
+        // 🔥 SIMPLIFIED: Use shared BillingManager (keeps ALL your logic intact)
         buyBtn.setOnClickListener(v -> {
-            if (productDetails != null) {
-                startSubscriptionPurchase();
-            } else {
-                Toast.makeText(this, "Subscription not loaded yet", Toast.LENGTH_SHORT).show();
-            }
+            BillingManager.getInstance(this).launchSubscriptionPurchase(this, isSubscribed -> {
+                if (isSubscribed) {
+                    Toast.makeText(this, "✅ Subscription active! 🎉", Toast.LENGTH_LONG).show();
+                    finish();  // Return to FeedFragment
+                }
+            });
         });
     }
 
