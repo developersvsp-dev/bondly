@@ -274,9 +274,9 @@ public class FeedFragment extends Fragment {
                         String gender = doc.getString("gender");
                         if (name != null) {
                             String welcome = "Welcome back, " + name + "!";
-                            if (gender != null && !gender.isEmpty()) {
-                                welcome += " (" + gender + ")";
-                            }
+//                            if (gender != null && !gender.isEmpty()) {
+//                                welcome += " (" + gender + ")";
+//                            }
                             tvWelcome.setText(welcome);
                         }
                     }
