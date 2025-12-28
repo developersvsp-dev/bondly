@@ -1,13 +1,19 @@
+// 🔥 FULLY UPDATED MatchesAdapter.java - WORKS EVERY CLICK
 package com.vaibhav.bondly;
 
+import android.app.Activity;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
@@ -21,11 +27,14 @@ public class MatchesAdapter extends RecyclerView.Adapter<MatchesAdapter.UserView
     private ArrayList<User> usersList;
     private Context context;
     private String currentUserId;
+    private MatchesFragment fragment;
+    private long lastClickTime = 0;
 
-    public MatchesAdapter(ArrayList<User> usersList, Context context) {
+    public MatchesAdapter(ArrayList<User> usersList, Context context, MatchesFragment fragment) {
         this.usersList = usersList;
         this.context = context;
         this.currentUserId = UserManager.getCurrentUserId();
+        this.fragment = fragment;
     }
 
     @NonNull
@@ -45,7 +54,7 @@ public class MatchesAdapter extends RecyclerView.Adapter<MatchesAdapter.UserView
             Glide.with(context).load(user.profileImage).into(holder.profileImage);
         }
 
-        holder.itemView.setOnClickListener(v -> startChat(user.userId));
+        holder.itemView.setOnClickListener(v -> handleUserClick(user));
     }
 
     @Override
@@ -53,14 +62,79 @@ public class MatchesAdapter extends RecyclerView.Adapter<MatchesAdapter.UserView
         return usersList.size();
     }
 
-    // ✅ FIXED: CONSISTENT CHAT ID FOR BOTH USERS
-    private void startChat(String otherUserId) {
-        // 🔥 ALWAYS CREATE SAME CHAT ID REGARDLESS OF WHO STARTS
+    // 🔥 PERFECT FIX FROM FeedFragment - MAIN THREAD + NULL CHECKS
+    private void handleUserClick(User user) {
+        Log.d("MatchesAdapter", "👆 User clicked: " + user.name);
+
+        // 🔥 DEBOUNCE
+        if (System.currentTimeMillis() - lastClickTime < 1000) {
+            Log.d("MatchesAdapter", "⏳ Too fast - ignoring click");
+            return;
+        }
+        lastClickTime = System.currentTimeMillis();
+
+        // 🔥 NULL CHECKS (FeedFragment pattern)
+        if (context == null || fragment == null || fragment.getActivity() == null) {
+            Log.d("MatchesAdapter", "🚫 Context/Fragment destroyed");
+            return;
+        }
+
+        BillingManager billingManager = BillingManager.getInstance(context);
+        billingManager.checkSubscriptionStatus(isSubscribed -> {
+            Log.d("MatchesAdapter", "🎯 CALLBACK FIRED: isSubscribed = " + isSubscribed);
+
+            // 🔥 CRITICAL NULL CHECKS
+            if (fragment.getActivity() == null || context == null) {
+                Log.d("MatchesAdapter", "🚫 Fragment destroyed");
+                return;
+            }
+
+            // 🔥 MAIN THREAD GUARANTEE (exact FeedFragment pattern)
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (isSubscribed) {
+                    Log.d("MatchesAdapter", "✅ SUB ACTIVE - Opening chat");
+                    startChat(user.userId);
+                } else {
+                    Log.d("MatchesAdapter", "❌ NO SUB - SHOWING DIALOG");
+
+                    new AlertDialog.Builder(context)
+                            .setTitle("🔒 Unlock Chat")
+                            .setMessage("Subscribe for ₹150/month to chat with " + user.name + "?")
+                            .setCancelable(true)
+                            .setPositiveButton("Subscribe Now", (dialog, which) -> {
+                                Log.d("MatchesAdapter", "👆 SUBSCRIBE BUTTON TAPPED");
+                                if (context instanceof Activity) {
+                                    billingManager.launchSubscriptionPurchase((Activity) context, subscribed -> {
+                                        Log.d("MatchesAdapter", "💰 PURCHASE CALLBACK: " + subscribed);
+                                        if (subscribed) {
+                                            fragment.onPaymentSuccess(user.userId);
+                                        } else {
+                                            Toast.makeText(context, "Subscription required to chat", Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                }
+                            })
+                            .setNegativeButton("Cancel", (dialog, which) -> {
+                                Log.d("MatchesAdapter", "❌ CANCEL TAPPED");
+                            })
+                            .setOnCancelListener(dialog -> {
+                                Log.d("MatchesAdapter", "❌ DIALOG CANCELLED (back button)");
+                            })
+                            .setOnDismissListener(dialog -> {
+                                Log.d("MatchesAdapter", "✅ DIALOG DISMISSED");
+                            })
+                            .show();
+                }
+            });
+        });
+    }
+
+    public void startChat(String otherUserId) {
         String[] userIds = {currentUserId, otherUserId};
-        Arrays.sort(userIds);  // Alphabetical: smaller ID first
+        Arrays.sort(userIds);
         String chatId = userIds[0] + "_" + userIds[1];
 
-        Log.d("MatchesAdapter", "🔗 Chat ID: " + chatId + " (current=" + currentUserId + ", other=" + otherUserId + ")");
+        Log.d("MatchesAdapter", "🔗 Chat ID: " + chatId);
 
         Map<String, Object> chatData = new HashMap<>();
         chatData.put("users", Arrays.asList(currentUserId, otherUserId));
@@ -77,10 +151,9 @@ public class MatchesAdapter extends RecyclerView.Adapter<MatchesAdapter.UserView
                             .replace(R.id.fragment_container, chatFragment)
                             .addToBackStack("chat")
                             .commit();
+                    Log.d("MatchesAdapter", "✅ Chat opened");
                 })
                 .addOnFailureListener(e -> {
-                    // Chat exists - open anyway
-                    Log.d("MatchesAdapter", "Chat already exists, opening...");
                     ChatFragment chatFragment = ChatFragment.newInstance(chatId, otherUserId, currentUserId);
                     ((AppCompatActivity) context).getSupportFragmentManager()
                             .beginTransaction()
@@ -94,7 +167,7 @@ public class MatchesAdapter extends RecyclerView.Adapter<MatchesAdapter.UserView
         ImageView profileImage;
         TextView nameText, bioText;
 
-        public UserViewHolder(@NonNull View itemView) {
+        UserViewHolder(@NonNull View itemView) {
             super(itemView);
             profileImage = itemView.findViewById(R.id.iv_profile);
             nameText = itemView.findViewById(R.id.tv_name);

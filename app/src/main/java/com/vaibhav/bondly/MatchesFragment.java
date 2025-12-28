@@ -1,3 +1,4 @@
+// 🔥 UPDATED MatchesFragment.java - FULL WORKING CODE
 package com.vaibhav.bondly;
 
 import android.os.Bundle;
@@ -21,14 +22,13 @@ public class MatchesFragment extends Fragment {
     private MatchesAdapter adapter;
     private ArrayList<User> likersList;
     private FirebaseFirestore db;
-    private String currentUserId;  // ✅ DECLARED HERE
+    private String currentUserId;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_matches, container, false);
 
-        // ✅ AUTO DETECT CURRENT USER ID
         currentUserId = UserManager.getCurrentUserId();
         Log.d("MatchesFragment", "🔥 Current User ID: " + currentUserId);
 
@@ -36,13 +36,13 @@ public class MatchesFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         likersList = new ArrayList<>();
-        adapter = new MatchesAdapter(likersList, getContext());  // ✅ Passes auto-detected ID internally
+        // 🔥 FIXED: Pass Fragment reference
+        adapter = new MatchesAdapter(likersList, getContext(), this);
         recyclerView.setAdapter(adapter);
 
         db = FirebaseFirestore.getInstance();
         loadLikers();
 
-        // ✅ NEW: INBOX BUTTON
         Button btnInbox = view.findViewById(R.id.btn_inbox);
         if (btnInbox != null) {
             btnInbox.setOnClickListener(v -> navigateToInbox());
@@ -61,17 +61,12 @@ public class MatchesFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     Log.d("MatchesFragment", "✅ Found " + querySnapshot.size() + " likes");
-
                     likersList.clear();
 
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         String likerId = doc.getString("likerId");
-                        Log.d("MatchesFragment", "👤 Liker ID: " + likerId);
-
                         if (likerId != null && !likerId.equals(currentUserId)) {
                             fetchUserDetails(likerId);
-                        } else {
-                            Log.d("MatchesFragment", "⏭️ Skipping self-like");
                         }
                     }
                 })
@@ -100,7 +95,12 @@ public class MatchesFragment extends Fragment {
                 });
     }
 
-    // ✅ NEW: NAVIGATE TO INBOX
+    // 🔥 NEW: Payment success callback
+    public void onPaymentSuccess(String targetUserId) {
+        Log.d("MatchesFragment", "💎 Payment success - opening chat with: " + targetUserId);
+        adapter.startChat(targetUserId);
+    }
+
     private void navigateToInbox() {
         InboxFragment inboxFragment = new InboxFragment();
         getParentFragmentManager()

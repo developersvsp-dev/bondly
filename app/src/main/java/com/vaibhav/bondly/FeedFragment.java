@@ -33,11 +33,14 @@ public class FeedFragment extends Fragment {
     private TextView tvWelcome;
     private ProfileAdapter adapter;
     private List<Profile> profiles;
+    private List<Profile> allProfiles = new ArrayList<>();  // 🔥 FULL LIST
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private Map<String, Boolean> myLikes = new HashMap<>();
 
-    // 🔥 REMOVED: isCheckingSubscription flag - CAUSES 2ND CLICK FAILURE
+    // 🔥 FILTER STATE
+    private Button btnFilterAll, btnFilterMale, btnFilterFemale;
+    private String currentFilter = "all";
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -47,6 +50,11 @@ public class FeedFragment extends Fragment {
         progressBar = view.findViewById(R.id.progressBar);
         tvWelcome = view.findViewById(R.id.tvWelcome);
         Button premiumBtn = view.findViewById(R.id.btnGoPremium);
+
+        // 🔥 FILTER BUTTONS
+        btnFilterAll = view.findViewById(R.id.btnFilterAll);
+        btnFilterMale = view.findViewById(R.id.btnFilterMale);
+        btnFilterFemale = view.findViewById(R.id.btnFilterFemale);
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -75,8 +83,65 @@ public class FeedFragment extends Fragment {
             });
         }
 
+        // 🔥 SETUP FILTERS
+        setupFilters();
+
         new Handler().postDelayed(this::loadProfiles, 200);
         return view;
+    }
+
+    // 🔥 NEW: FILTER SETUP
+    private void setupFilters() {
+        btnFilterAll.setOnClickListener(v -> setFilter("all"));
+        btnFilterMale.setOnClickListener(v -> setFilter("male"));
+        btnFilterFemale.setOnClickListener(v -> setFilter("female"));
+        updateFilterButtons();
+    }
+
+    private void setFilter(String filter) {
+        currentFilter = filter;
+        filterProfiles();
+        updateFilterButtons();
+    }
+
+    private void filterProfiles() {
+        profiles.clear();
+
+        for (Profile profile : allProfiles) {
+            if (currentFilter.equals("all") ||
+                    (currentFilter.equals("male") && "male".equalsIgnoreCase(profile.getGender())) ||
+                    (currentFilter.equals("female") && "female".equalsIgnoreCase(profile.getGender()))) {
+                profiles.add(profile);
+            }
+        }
+
+        adapter.notifyDataSetChanged();
+        if (tvWelcome != null) {
+            tvWelcome.setText("Showing " + profiles.size() + " " + currentFilter + " profiles");
+        }
+    }
+
+    private void updateFilterButtons() {
+        int selectedColor = getResources().getColor(android.R.color.holo_blue_dark, null);
+        int normalColor = getResources().getColor(android.R.color.darker_gray, null);
+
+        // Reset all
+        btnFilterAll.setBackgroundTintList(getResources().getColorStateList(android.R.color.darker_gray));
+        btnFilterMale.setBackgroundTintList(getResources().getColorStateList(android.R.color.darker_gray));
+        btnFilterFemale.setBackgroundTintList(getResources().getColorStateList(android.R.color.darker_gray));
+
+        // Highlight selected
+        switch (currentFilter) {
+            case "all":
+                btnFilterAll.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_blue_dark));
+                break;
+            case "male":
+                btnFilterMale.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_blue_dark));
+                break;
+            case "female":
+                btnFilterFemale.setBackgroundTintList(getResources().getColorStateList(android.R.color.holo_blue_dark));
+                break;
+        }
     }
 
     private void loadProfiles() {
@@ -114,7 +179,8 @@ public class FeedFragment extends Fragment {
                 .addOnSuccessListener(querySnapshot -> {
                     if (getContext() == null) return;
 
-                    profiles.clear();
+                    allProfiles.clear();  // 🔥 CLEAR FULL LIST
+                    List<Profile> tempProfiles = new ArrayList<>();  // 🔥 TEMP LIST
 
                     for (var doc : querySnapshot) {
                         String uid = doc.getId();
@@ -138,21 +204,16 @@ public class FeedFragment extends Fragment {
                         profile.setLikesCount(likesCount);
                         profile.setLikedByMe(likedByMe);
 
-                        profiles.add(profile);
-                        Log.d(TAG, "✅ Loaded: " + profile.getName() + " | LikedByMe: " + likedByMe);
+                        tempProfiles.add(profile);
+                        Log.d(TAG, "✅ Loaded: " + profile.getName() + " | Gender: " + gender + " | LikedByMe: " + likedByMe);
                     }
 
-                    adapter.notifyDataSetChanged();
+                    // 🔥 STORE IN FULL LIST + APPLY FILTER
+                    allProfiles.addAll(tempProfiles);
+                    filterProfiles();  // 🔥 AUTO FILTER
                     showLoading(false);
 
-                    if (profiles.isEmpty()) {
-                        tvWelcome.setText("No other users yet. Invite friends!");
-                    } else {
-                        tvWelcome.setText("Found " + profiles.size() + " users nearby");
-                    }
-
-                    updateWelcomeMessage();
-                    Log.d(TAG, "✅ Profiles loaded: " + profiles.size());
+                    Log.d(TAG, "✅ Profiles loaded: " + allProfiles.size() + " total");
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Firestore failed", e);
@@ -164,6 +225,7 @@ public class FeedFragment extends Fragment {
                 });
     }
 
+    // 🔥 REST OF YOUR EXISTING METHODS (unchanged)
     private void handleLike(String targetUid, boolean isLike) {
         if (mAuth.getCurrentUser() == null || getContext() == null) return;
 
@@ -211,7 +273,6 @@ public class FeedFragment extends Fragment {
         }
     }
 
-    // 🔥 PERFECT FIX: NO FLAG + MAIN THREAD + EVERY CLICK WORKS
     private void handleMessage(String targetUid) {
         Log.d(TAG, "🚀 MESSAGE TAP - UID: " + (mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "NULL"));
 
@@ -229,7 +290,6 @@ public class FeedFragment extends Fragment {
                 return;
             }
 
-            // 🔥 MAIN THREAD GUARANTEE - DIALOG ALWAYS SHOWS
             requireActivity().runOnUiThread(() -> {
                 if (isSubscribed) {
                     Log.d(TAG, "✅ SUB ACTIVE - Opening chat");
@@ -237,7 +297,6 @@ public class FeedFragment extends Fragment {
                 } else {
                     Log.d(TAG, "❌ NO SUB - SHOWING DIALOG");
 
-                    // 🔥 TOAST PROOF + Unblockable Dialog
                     Toast.makeText(requireContext(), "🚨 SUBSCRIBE TO CHAT!", Toast.LENGTH_LONG).show();
 
                     new AlertDialog.Builder(requireContext())
