@@ -10,7 +10,6 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -32,9 +31,10 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     private Set<Integer> selectedPositions = new HashSet<>();
     private OnChatSelectedListener listener;
 
-    // 🔥 UPDATED INTERFACE - SUBSCRIPTION CHECK REQUIRED
+    // 🔥 FIXED INTERFACE - BOTH METHODS REQUIRED
     public interface OnChatSelectedListener {
-        void onChatSelected(String chatId, String targetUid);  // 🔥 NEW: Direct chat access blocked
+        void onChatSelected(int position, boolean isChecked);      // 🔥 SELECTION
+        void onChatSelected(String chatId, String targetUid);      // 🔥 CHAT OPEN
         void onSelectionCountChanged(int count);
     }
 
@@ -65,29 +65,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         return selectedPositions.size();
     }
 
-    public Set<Integer> getSelectedPositions() {
-        return new HashSet<>(selectedPositions);
-    }
-
-    public void setSelectedPositions(Set<Integer> selectedPositions) {
-        this.selectedPositions.clear();
-        if (selectedPositions != null) {
-            this.selectedPositions.addAll(selectedPositions);
-        }
-        notifyDataSetChanged();
-        if (listener != null) {
-            listener.onSelectionCountChanged(getSelectedCount());
-        }
-    }
-
-    public void clearSelection() {
-        selectedPositions.clear();
-        notifyDataSetChanged();
-        if (listener != null) {
-            listener.onSelectionCountChanged(0);
-        }
-    }
-
     @NonNull
     @Override
     public ChatViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -102,14 +79,14 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
 
         // 🔥 PERFECT CHECKBOX BINDING
         holder.checkbox.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
-        holder.checkbox.setOnCheckedChangeListener(null);
+        holder.checkbox.setOnCheckedChangeListener(null);  // Prevent double calls
         holder.checkbox.setChecked(isPositionSelected(position));
         holder.checkbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             Log.d("ChatAdapter", "Checkbox: pos=" + position + ", checked=" + isChecked);
             toggleSelection(position, isChecked);
         });
 
-        // 🔥 LOAD USER DATA (async)
+        // 🔥 LOAD USER DATA
         db.collection("users").document(otherUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
@@ -125,11 +102,10 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
                     }
                 });
 
-        // 🔥 REAL-TIME LAST MESSAGE + UNREAD COUNT
+        // 🔥 REAL-TIME LAST MESSAGE + UNREAD
         holder.lastMessageText.setText(chat.lastMessage != null ? chat.lastMessage : "No messages yet");
         holder.timeText.setText(formatTime(chat.timestamp));
 
-        // 🔥 UNREAD COUNT (Updates live from Firestore)
         if (chat.unreadCount > 0) {
             holder.tvUnreadCount.setVisibility(View.VISIBLE);
             holder.tvUnreadCount.setText(chat.unreadCount > 99 ? "99+" : String.valueOf(chat.unreadCount));
@@ -137,24 +113,23 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             holder.tvUnreadCount.setVisibility(View.GONE);
         }
 
-        // 🔥 UPDATED CLICK HANDLER - SUBSCRIPTION CHECK REQUIRED
+        // 🔥 CLICK HANDLER
         holder.itemView.setOnClickListener(v -> {
             Log.d("ChatAdapter", "Item click: pos=" + position + ", selection=" + selectionMode);
             if (selectionMode) {
                 boolean newState = !isPositionSelected(position);
                 holder.checkbox.setChecked(newState);
             } else {
-                // 🔥 BLOCK DIRECT ACCESS - REQUIRE SUBSCRIPTION CHECK
                 Chat chatItem = chatsList.get(position);
                 String targetUid = getOtherUserId(chatItem);
                 if (listener != null) {
                     listener.onChatSelected(chatItem.chatId, targetUid);
-                    Log.d("ChatAdapter", "🔒 Subscription check triggered: " + chatItem.chatId);
                 }
             }
         });
     }
 
+    // 🔥 FIXED: CALLS BOTH INTERFACE METHODS
     private void toggleSelection(int position, boolean isChecked) {
         if (isChecked) {
             selectedPositions.add(position);
@@ -163,7 +138,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         }
         notifyItemChanged(position);
         if (listener != null) {
-            listener.onSelectionCountChanged(getSelectedCount());
+            listener.onChatSelected(position, isChecked);        // 🔥 SELECTION CALLBACK
+            listener.onSelectionCountChanged(getSelectedCount()); // 🔥 COUNT CALLBACK
         }
     }
 
@@ -186,7 +162,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         return sdf.format(new Date(timestamp));
     }
 
-    // 🔥 VIEWHOLDER
     static class ChatViewHolder extends RecyclerView.ViewHolder {
         ImageView profileImage;
         TextView nameText, lastMessageText, timeText, tvUnreadCount;

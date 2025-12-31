@@ -320,6 +320,7 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
     }
 
     // 🔥 NEW METHOD - NOT OVERRIDE (keeps selection mode working)
+    @Override
     public void onChatSelected(String chatId, String targetUid) {
         Log.d(TAG, "💬 Thread clicked: " + chatId);
 
