@@ -254,7 +254,10 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
                             Chat chat = doc.toObject(Chat.class);
                             if (chat == null || chat.users == null || chat.users.size() < 2) continue;
 
-                            if (chat.deletedBy != null && chat.deletedBy.contains(currentUserId)) {
+                            // 🔥 FIXED: Safe null + empty array check
+                            if (chat.deletedBy != null && !chat.deletedBy.isEmpty() &&
+                                    chat.deletedBy.contains(currentUserId)) {
+                                Log.d(TAG, "⏭️ Skipping deleted chat: " + chat.chatId);
                                 continue;
                             }
 
@@ -266,18 +269,19 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
                             if (!uniqueByPair.containsKey(key)) {
                                 chat.otherUserId = u1.equals(currentUserId) ? u2 : u1;
                                 uniqueByPair.put(key, chat);
-                                calculateUnreadCount(chat);  // 🔥 LIVE unread count
+                                calculateUnreadCount(chat);
                             }
                         }
                         chatsList.addAll(uniqueByPair.values());
                     }
 
-                    Log.d(TAG, "✅ LIVE Chats updated: " + chatsList.size());
+                    Log.d(TAG, "✅ LIVE Chats updated: " + chatsList.size() + " | Snapshot: " + (snapshot != null ? snapshot.size() : 0));
                     if (adapter != null) {
                         adapter.notifyDataSetChanged();
                     }
                 });
     }
+
 
     // 🔥 LIVE UNREAD COUNT LISTENER (PER CHAT)
     private void calculateUnreadCount(Chat chat) {
