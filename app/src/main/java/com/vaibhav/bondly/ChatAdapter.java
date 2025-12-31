@@ -32,8 +32,9 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     private Set<Integer> selectedPositions = new HashSet<>();
     private OnChatSelectedListener listener;
 
+    // 🔥 UPDATED INTERFACE - SUBSCRIPTION CHECK REQUIRED
     public interface OnChatSelectedListener {
-        void onChatSelected(int position, boolean isChecked);
+        void onChatSelected(String chatId, String targetUid);  // 🔥 NEW: Direct chat access blocked
         void onSelectionCountChanged(int count);
     }
 
@@ -136,14 +137,20 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             holder.tvUnreadCount.setVisibility(View.GONE);
         }
 
-        // 🔥 CLICK HANDLER
+        // 🔥 UPDATED CLICK HANDLER - SUBSCRIPTION CHECK REQUIRED
         holder.itemView.setOnClickListener(v -> {
             Log.d("ChatAdapter", "Item click: pos=" + position + ", selection=" + selectionMode);
             if (selectionMode) {
                 boolean newState = !isPositionSelected(position);
                 holder.checkbox.setChecked(newState);
             } else {
-                openChat(chat, otherUserId);
+                // 🔥 BLOCK DIRECT ACCESS - REQUIRE SUBSCRIPTION CHECK
+                Chat chatItem = chatsList.get(position);
+                String targetUid = getOtherUserId(chatItem);
+                if (listener != null) {
+                    listener.onChatSelected(chatItem.chatId, targetUid);
+                    Log.d("ChatAdapter", "🔒 Subscription check triggered: " + chatItem.chatId);
+                }
             }
         });
     }
@@ -156,7 +163,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
         }
         notifyItemChanged(position);
         if (listener != null) {
-            listener.onChatSelected(position, isChecked);
             listener.onSelectionCountChanged(getSelectedCount());
         }
     }
@@ -173,19 +179,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
             return user1.equals(currentUserId) ? user2 : user1;
         }
         return "unknown";
-    }
-
-    private void openChat(Chat chat, String otherUserId) {
-        if (listener != null) {
-            listener.onChatSelected(-1, false);
-        }
-        ChatFragment chatFragment = ChatFragment.newInstance(chat.chatId, otherUserId, currentUserId);
-        ((AppCompatActivity) context).getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, chatFragment)
-                .addToBackStack("chat")
-                .commit();
-        Log.d("ChatAdapter", "✅ Opened chat: " + chat.chatId);
     }
 
     private String formatTime(long timestamp) {

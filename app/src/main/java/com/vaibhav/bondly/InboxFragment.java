@@ -91,7 +91,7 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
         });
     }
 
-    @Override
+
     public void onChatSelected(int position, boolean isChecked) {
         if (position == -1) {
             exitSelectionMode();
@@ -318,6 +318,55 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
 
         unreadListeners.put(chatIdKey, unreadListener);
     }
+
+    // 🔥 NEW METHOD - NOT OVERRIDE (keeps selection mode working)
+    public void onChatSelected(String chatId, String targetUid) {
+        Log.d(TAG, "💬 Thread clicked: " + chatId);
+
+        BillingManager billingManager = BillingManager.getInstance(requireContext());
+        billingManager.checkSubscriptionStatus(isSubscribed -> {
+            mainHandler.post(() -> {
+                if (isSubscribed) {
+                    openChatFragment(chatId, targetUid);
+                    Log.d(TAG, "✅ SUB ACTIVE → Chat opened: " + chatId);
+                } else {
+                    Log.d(TAG, "❌ NO SUB → Showing dialog");
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Send Messages")
+                            .setMessage("Subscribe for ₹150/month to continue chatting!")
+                            .setPositiveButton("Subscribe Now", (dialog, which) -> {
+                                billingManager.launchSubscriptionPurchase(requireActivity(), new BillingManager.SubscriptionCallback() {
+                                    @Override
+                                    public void onCheckComplete(boolean isSubscribed) {
+                                        if (isSubscribed) {
+                                            openChatFragment(chatId, targetUid);
+                                            Log.d(TAG, "✅ Payment success → Chat opened");
+                                        }
+                                    }
+                                });
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .setCancelable(false)
+                            .show();
+                }
+            });
+        });
+    }
+
+
+
+
+    // 🔥 HELPER: Open chat fragment
+    private void openChatFragment(String chatId, String targetUid) {
+        ChatFragment chatFragment = ChatFragment.newInstance(chatId, targetUid, currentUserId);
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, chatFragment)
+                .addToBackStack("chat")
+                .commit();
+    }
+
+
 
     @Override
     public void onDestroyView() {
