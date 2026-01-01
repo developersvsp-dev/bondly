@@ -259,15 +259,16 @@ public class ChatFragment extends Fragment {
                 .addOnSuccessListener(docRef -> {
                     Log.d(TAG, "📤 Message sent: " + text);
 
-                    // 🔥 TRIGGER INBOX UPDATE
+                    // 🔥 TRIGGER INBOX UPDATE + RESURRECT DELETED CHAT
                     Map<String, Object> chatUpdate = new HashMap<>();
                     chatUpdate.put("lastMessage", text);
-                    chatUpdate.put("timestamp", message.timestamp);
+                    chatUpdate.put("timestamp", com.google.firebase.Timestamp.now());  // Timestamp obj
+                    chatUpdate.put("deletedBy", com.google.firebase.firestore.FieldValue.delete());  // 🔥 REVIVE
 
                     db.collection("chats").document(chatId)
                             .update(chatUpdate)
                             .addOnSuccessListener(aVoid -> {
-                                Log.d(TAG, "✅ CHAT UPDATED - INBOX REFRESHES LIVE!");
+                                Log.d(TAG, "✅ CHAT RESURRECTED & UPDATED - INBOX REFRESHES LIVE!");
                                 getRecipientTokenForNotification(text);
                             })
                             .addOnFailureListener(e -> {
@@ -278,6 +279,7 @@ public class ChatFragment extends Fragment {
                     Log.e(TAG, "❌ Message send failed", e);
                 });
     }
+
 
     private void getRecipientTokenForNotification(String messageText) {
         db.collection("users").document(currentUserId)

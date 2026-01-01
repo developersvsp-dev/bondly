@@ -17,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -272,7 +274,7 @@ public class FeedFragment extends Fragment {
             adapter.notifyItemChanged(position);
         }
     }
-
+  //  private static final boolean DEBUG_MODE = true;
     private void handleMessage(String targetUid) {
         Log.d(TAG, "🚀 MESSAGE TAP - UID: " + (mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "NULL"));
 
@@ -280,6 +282,13 @@ public class FeedFragment extends Fragment {
             Log.d(TAG, "🚫 Auth/Context null");
             return;
         }
+
+        // 🔥🔥 DEBUG BYPASS - REMOVES PAYMENT CHECK IN DEBUG BUILDS 🔥🔥
+        //if (DEBUG_MODE) {
+        //    Log.d(TAG, "🔓 DEBUG MODE ACTIVE - FREE CHAT ACCESS");
+        //    openChat(targetUid);
+         //   return;
+      //  }
 
         BillingManager billingManager = BillingManager.getInstance(getContext());
         billingManager.checkSubscriptionStatus(isSubscribed -> {
@@ -334,6 +343,31 @@ public class FeedFragment extends Fragment {
                 ? currentUid + "_" + targetUid
                 : targetUid + "_" + currentUid;
 
+        // 🔥 CREATE TOP-LEVEL CHAT DOCUMENT (Triggers Inbox!)
+        Map<String, Object> chatData = new HashMap<>();
+        chatData.put("users", java.util.Arrays.asList(currentUid, targetUid));
+        chatData.put("timestamp", com.google.firebase.Timestamp.now());
+        chatData.put("lastMessage", "Say hi to start chatting!");
+
+        db.collection("chats").document(chatId)
+                .set(chatData, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ CHAT DOC CREATED: " + chatId + " → INBOX UPDATES!");
+
+                    // 🔥 RESURRECT DELETED CHAT - Clear deletedBy for BOTH users
+                    Map<String, Object> resurrectData = new HashMap<>();
+                    resurrectData.put("deletedBy", com.google.firebase.firestore.FieldValue.delete());
+
+                    db.collection("chats").document(chatId)
+                            .update(resurrectData)
+                            .addOnSuccessListener(resurrect -> {
+                                Log.d(TAG, "🔥 CHAT RESURRECTED - VISIBLE IN BOTH INBOXES!");
+                            })
+                            .addOnFailureListener(e -> Log.w(TAG, "⚠️ Resurrection failed (ok if not deleted)", e));
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "❌ Chat doc failed", e));
+
+        // Navigate to ChatFragment
         ChatFragment chatFragment = ChatFragment.newInstance(chatId, targetUid, currentUid);
         if (getActivity() instanceof AppCompatActivity) {
             ((AppCompatActivity) getActivity()).getSupportFragmentManager()
@@ -343,9 +377,11 @@ public class FeedFragment extends Fragment {
                     .commit();
         }
 
-        Log.d(TAG, "💬 Opening chat: " + chatId + " with " + targetUid);
+        Log.d(TAG, "💬 Opening chat: " + chatId);
         Toast.makeText(getContext(), "Opening chat...", Toast.LENGTH_SHORT).show();
     }
+
+
 
     private void updateLikesCount(String targetUid, int increment) {
         db.collection("users").document(targetUid)

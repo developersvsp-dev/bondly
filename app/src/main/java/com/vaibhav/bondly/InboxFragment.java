@@ -29,6 +29,7 @@ import com.google.firebase.firestore.FieldValue;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -251,36 +252,72 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
                         Map<String, Chat> uniqueByPair = new HashMap<>();
 
                         for (var doc : snapshot.getDocuments()) {
-                            Chat chat = doc.toObject(Chat.class);
-                            if (chat == null || chat.users == null || chat.users.size() < 2) continue;
+                            Map<String, Object> data = doc.getData();
+                            Chat chat = new Chat();
+                            chat.chatId = doc.getId();
 
-                            // 🔥 FIXED: Safe null + empty array check
-                            if (chat.deletedBy != null && !chat.deletedBy.isEmpty() &&
-                                    chat.deletedBy.contains(currentUserId)) {
-                                Log.d(TAG, "⏭️ Skipping deleted chat: " + chat.chatId);
+                            // 🔥 FIXED USERS CAST - SAFE ArrayList
+                            Object usersObj = data.get("users");
+                            if (usersObj instanceof List) {
+                                List<?> rawList = (List<?>) usersObj;
+                                chat.users = new ArrayList<>();
+                                for (Object item : rawList) {
+                                    if (item instanceof String) {
+                                        chat.users.add((String) item);
+                                    }
+                                }
+                            } else {
+                                chat.users = new ArrayList<>();
+                            }
+
+                            chat.lastMessage = (String) data.get("lastMessage");
+                            chat.unreadCount = data.containsKey("unreadCount") ?
+                                    ((Long) data.get("unreadCount")).intValue() : 0;
+
+                            // 🔥 TIMESTAMP SAFE CONVERSION
+                            Object tsObj = data.get("timestamp");
+                            if (tsObj instanceof com.google.firebase.Timestamp) {
+                                chat.timestamp = ((com.google.firebase.Timestamp) tsObj).toDate().getTime();
+                            } else if (tsObj instanceof Long) {
+                                chat.timestamp = (Long) tsObj;
+                            } else if (tsObj instanceof Number) {
+                                chat.timestamp = ((Number) tsObj).longValue();
+                            } else {
+                                chat.timestamp = 0L;  // Default
+                            }
+
+                            // 🔥 deletedBy check
+                            @SuppressWarnings("unchecked")
+                            List<String> deletedBy = (List<String>) data.get("deletedBy");
+                            if (deletedBy != null && !deletedBy.isEmpty() &&
+                                    deletedBy.contains(currentUserId)) {
+                                Log.d(TAG, "⏭️ Skipping deleted: " + chat.chatId);
                                 continue;
                             }
 
-                            chat.chatId = doc.getId();
-                            String u1 = chat.users.get(0);
-                            String u2 = chat.users.get(1);
-                            String key = u1.compareTo(u2) < 0 ? (u1 + "_" + u2) : (u2 + "_" + u1);
+                            if (chat.users != null && chat.users.size() >= 2) {
+                                String u1 = chat.users.get(0);
+                                String u2 = chat.users.get(1);
+                                String key = u1.compareTo(u2) < 0 ? (u1 + "_" + u2) : (u2 + "_" + u1);
 
-                            if (!uniqueByPair.containsKey(key)) {
-                                chat.otherUserId = u1.equals(currentUserId) ? u2 : u1;
-                                uniqueByPair.put(key, chat);
-                                calculateUnreadCount(chat);
+                                if (!uniqueByPair.containsKey(key)) {
+                                    chat.otherUserId = u1.equals(currentUserId) ? u2 : u1;
+                                    uniqueByPair.put(key, chat);
+                                    calculateUnreadCount(chat);
+                                }
                             }
                         }
                         chatsList.addAll(uniqueByPair.values());
                     }
 
-                    Log.d(TAG, "✅ LIVE Chats updated: " + chatsList.size() + " | Snapshot: " + (snapshot != null ? snapshot.size() : 0));
+                    Log.d(TAG, "✅ LIVE Chats: " + chatsList.size());
                     if (adapter != null) {
                         adapter.notifyDataSetChanged();
                     }
                 });
     }
+
+
 
 
     // 🔥 LIVE UNREAD COUNT LISTENER (PER CHAT)
@@ -369,28 +406,28 @@ public class InboxFragment extends Fragment implements ChatAdapter.OnChatSelecte
 
 
 
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
 
-        // 🔥 PERFECT CLEANUP - ALL LISTENERS
+        // 🔥 CRASH FIX - PERFECT CLEANUP
         if (chatsListener != null) {
             chatsListener.remove();
             chatsListener = null;
         }
 
-        // 🔥 Remove ALL unread listeners
-        for (ListenerRegistration listener : unreadListeners.values()) {
-            if (listener != null) {
-                listener.remove();
+        // 🔥 CLEAN ALL unread listeners
+        for (Map.Entry<String, ListenerRegistration> entry : unreadListeners.entrySet()) {
+            if (entry.getValue() != null) {
+                entry.getValue().remove();
             }
         }
         unreadListeners.clear();
 
-        if (adapter != null) {
-            adapter = null;
-        }
+        adapter = null;
         recyclerView = null;
         toolbar = null;
     }
+
 }
