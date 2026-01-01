@@ -27,6 +27,18 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import com.google.firebase.messaging.FirebaseMessaging;
+
+import java.util.Map;
+import com.vaibhav.bondly.Message;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import org.json.JSONObject;
+import org.json.JSONException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ChatFragment extends Fragment {
     private static final String TAG = "ChatFragment";
@@ -269,7 +281,7 @@ public class ChatFragment extends Fragment {
                             .update(chatUpdate)
                             .addOnSuccessListener(aVoid -> {
                                 Log.d(TAG, "✅ CHAT RESURRECTED & UPDATED - INBOX REFRESHES LIVE!");
-                                getRecipientTokenForNotification(text);
+                               // getRecipientTokenForNotification(text);
                             })
                             .addOnFailureListener(e -> {
                                 Log.e(TAG, "❌ Chat metadata update failed", e);
@@ -279,47 +291,88 @@ public class ChatFragment extends Fragment {
                     Log.e(TAG, "❌ Message send failed", e);
                 });
     }
+//    private void sendV1FCMNotification(String token, String senderName, String messageText, String chatId) {
+//        String SERVER_KEY = "YOUR_SERVER_KEY_HERE";  // Firebase Console
+//
+//        try {
+//            JSONObject json = new JSONObject();
+//            json.put("to", token);
+//
+//            JSONObject notification = new JSONObject();
+//            notification.put("title", senderName);
+//            notification.put("body", messageText);
+//
+//            JSONObject data = new JSONObject();
+//            data.put("chatId", chatId);
+//            data.put("type", "message");
+//
+//            json.put("notification", notification);
+//            json.put("data", data);
+//
+//            RequestQueue queue = Volley.newRequestQueue(getContext());
+//            JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST,
+//                    "https://fcm.googleapis.com/fcm/send",
+//                    json,  // ✅ Now JSONObject
+//                    response -> Log.d(TAG, "✅ FCM SENT: " + response.toString()),
+//                    error -> Log.e(TAG, "❌ FCM FAILED", error)) {
+//
+//                @Override
+//                public Map<String, String> getHeaders() {
+//                    Map<String, String> headers = new HashMap<>();
+//                    headers.put("Authorization", "key=" + SERVER_KEY);
+//                    headers.put("Content-Type", "application/json");
+//                    return headers;
+//                }
+//            };
+//            queue.add(request);
+//        } catch (JSONException e) {
+//            Log.e(TAG, "❌ JSON Error", e);
+//        }
+//    }
 
 
-    private void getRecipientTokenForNotification(String messageText) {
-        db.collection("users").document(currentUserId)
-                .get()
-                .addOnSuccessListener(senderSnapshot -> {
-                    String senderName = senderSnapshot.getString("name");
-                    if (senderName == null || senderName.isEmpty()) {
-                        senderName = "Someone";
-                    }
-                    String finalSenderName = senderName;
 
-                    db.collection("users").document(otherUserId)
-                            .get()
-                            .addOnSuccessListener(recipientSnapshot -> {
-                                if (!recipientSnapshot.exists()) {
-                                    Log.d(TAG, "❌ Recipient not found");
-                                    return;
-                                }
 
-                                String recipientToken = recipientSnapshot.getString("fcmToken");
-                                if (recipientToken == null || recipientToken.isEmpty()) {
-                                    Log.d(TAG, "❌ No FCM token");
-                                    return;
-                                }
-
-                                Log.d(TAG, "🚀=== FCM READY ===");
-                                Log.d(TAG, "👤 Recipient: " + otherUserId);
-                                Log.d(TAG, "🔑 TOKEN: " + recipientToken);
-                                Log.d(TAG, "💬 TITLE: " + finalSenderName);
-                                Log.d(TAG, "📝 BODY: " + messageText);
-                                Log.d(TAG, "🔥 COPY TO FIREBASE CONSOLE");
-                            })
-                            .addOnFailureListener(e ->
-                                    Log.e(TAG, "❌ Token fetch failed", e)
-                            );
-                })
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "❌ Sender fetch failed", e)
-                );
-    }
+//    private void getRecipientTokenForNotification(String messageText) {
+//        db.collection("users").document(currentUserId)
+//                .get()
+//                .addOnSuccessListener(senderSnapshot -> {
+//                    String senderName = senderSnapshot.getString("name");
+//                    if (senderName == null || senderName.isEmpty()) {
+//                        senderName = "Someone";
+//                    }
+//                    String finalSenderName = senderName;
+//
+//                    db.collection("users").document(otherUserId)
+//                            .get()
+//                            .addOnSuccessListener(recipientSnapshot -> {
+//                                if (!recipientSnapshot.exists()) {
+//                                    Log.d(TAG, "❌ Recipient not found");
+//                                    return;
+//                                }
+//
+//                                String recipientToken = recipientSnapshot.getString("fcmToken");
+//                                if (recipientToken == null || recipientToken.isEmpty()) {
+//                                    Log.d(TAG, "❌ No FCM token");
+//                                    return;
+//                                }
+//
+//                                Log.d(TAG, "🚀=== FCM READY ===");
+//                                Log.d(TAG, "👤 Recipient: " + otherUserId);
+//                                Log.d(TAG, "🔑 TOKEN: " + recipientToken);
+//                                Log.d(TAG, "💬 TITLE: " + finalSenderName);
+//                                Log.d(TAG, "📝 BODY: " + messageText);
+//                                Log.d(TAG, "🔥 SENDING V1 FCM!");
+//                               // sendV1FCMNotification(recipientToken, finalSenderName, messageText, chatId);  // ← ADD THIS LINE
+//                            })
+//                            .addOnFailureListener(e ->
+//                                    Log.e(TAG, "❌ Token fetch failed", e)
+//                            );
+//                })
+//                .addOnFailureListener(e ->
+//                        Log.e(TAG, "❌ Sender fetch failed", e)
+//                );
+//    }
 
     private void scrollToBottom() {
         if (messageAdapter != null && recyclerMessages != null && !messagesList.isEmpty()) {

@@ -274,7 +274,7 @@ public class FeedFragment extends Fragment {
             adapter.notifyItemChanged(position);
         }
     }
-  //  private static final boolean DEBUG_MODE = true;
+    private static final boolean DEBUG_MODE = true;
     private void handleMessage(String targetUid) {
         Log.d(TAG, "🚀 MESSAGE TAP - UID: " + (mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "NULL"));
 
@@ -284,11 +284,11 @@ public class FeedFragment extends Fragment {
         }
 
         // 🔥🔥 DEBUG BYPASS - REMOVES PAYMENT CHECK IN DEBUG BUILDS 🔥🔥
-        //if (DEBUG_MODE) {
-        //    Log.d(TAG, "🔓 DEBUG MODE ACTIVE - FREE CHAT ACCESS");
-        //    openChat(targetUid);
-         //   return;
-      //  }
+        if (DEBUG_MODE) {
+           Log.d(TAG, "🔓 DEBUG MODE ACTIVE - FREE CHAT ACCESS");
+            openChat(targetUid);
+            return;
+       }
 
         BillingManager billingManager = BillingManager.getInstance(getContext());
         billingManager.checkSubscriptionStatus(isSubscribed -> {
