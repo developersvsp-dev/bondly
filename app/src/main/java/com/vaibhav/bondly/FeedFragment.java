@@ -15,9 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
+import androidx.viewpager2.widget.ViewPager2;  // 🔥 ADDED
 
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -30,10 +28,10 @@ import java.util.Map;
 
 public class FeedFragment extends Fragment {
     private static final String TAG = "FeedFragment";
-    private RecyclerView rvFeed;
+    private ViewPager2 viewPagerProfiles;  // 🔥 CHANGED: ViewPager2 instead of RecyclerView
     private ProgressBar progressBar;
     private TextView tvWelcome;
-    private ProfileAdapter adapter;
+    private ProfilePagerAdapter pagerAdapter;  // 🔥 CHANGED: Pager adapter
     private List<Profile> profiles;
     private List<Profile> allProfiles = new ArrayList<>();  // 🔥 FULL LIST
     private FirebaseFirestore db;
@@ -48,7 +46,7 @@ public class FeedFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_feed, container, false);
 
-        rvFeed = view.findViewById(R.id.rvFeed);
+        viewPagerProfiles = view.findViewById(R.id.viewPagerProfiles);  // 🔥 NEW ID
         progressBar = view.findViewById(R.id.progressBar);
         tvWelcome = view.findViewById(R.id.tvWelcome);
         Button premiumBtn = view.findViewById(R.id.btnGoPremium);
@@ -62,20 +60,9 @@ public class FeedFragment extends Fragment {
         db = FirebaseFirestore.getInstance();
 
         profiles = new ArrayList<>();
-        adapter = new ProfileAdapter(profiles,
-                profile -> {
-                    if (getContext() != null && profile != null) {
-                        Toast.makeText(getContext(), "View " + profile.getName() + "'s profile", Toast.LENGTH_SHORT).show();
-                    }
-                },
-                (targetUid, isLike) -> handleLike(targetUid, isLike),
-                targetUid -> handleMessage(targetUid)
-        );
-
-        if (rvFeed != null) {
-            rvFeed.setLayoutManager(new LinearLayoutManager(getContext()));
-            rvFeed.setAdapter(adapter);
-        }
+        pagerAdapter = new ProfilePagerAdapter(this);  // 🔥 NEW PAGER ADAPTER
+        viewPagerProfiles.setAdapter(pagerAdapter);
+        viewPagerProfiles.setOrientation(ViewPager2.ORIENTATION_VERTICAL);
 
         if (premiumBtn != null) {
             premiumBtn.setOnClickListener(v -> {
@@ -117,11 +104,21 @@ public class FeedFragment extends Fragment {
             }
         }
 
-        adapter.notifyDataSetChanged();
+        // 🔥 FORCE ViewPager2 TO RELOAD EVERYTHING
+        viewPagerProfiles.setAdapter(null);
+        pagerAdapter.setProfiles(profiles);
+        viewPagerProfiles.setAdapter(pagerAdapter);
+
         if (tvWelcome != null) {
             tvWelcome.setText("Showing " + profiles.size() + " " + currentFilter + " profiles");
         }
+
+        Log.d(TAG, "🔥 REFRESHED ViewPager2: " + profiles.size() + " profiles");
     }
+
+
+
+
 
     private void updateFilterButtons() {
         int selectedColor = getResources().getColor(android.R.color.holo_blue_dark, null);
@@ -228,7 +225,7 @@ public class FeedFragment extends Fragment {
     }
 
     // 🔥 REST OF YOUR EXISTING METHODS (unchanged)
-    private void handleLike(String targetUid, boolean isLike) {
+     void handleLike(String targetUid, boolean isLike) {
         if (mAuth.getCurrentUser() == null || getContext() == null) return;
 
         String currentUid = mAuth.getCurrentUser().getUid();
@@ -268,14 +265,10 @@ public class FeedFragment extends Fragment {
         }
 
         myLikes.put(targetUid, isLike);
-        int position = findProfilePosition(targetUid);
-        if (position != -1) {
-            profiles.get(position).setLikedByMe(isLike);
-            adapter.notifyItemChanged(position);
-        }
+        //private static final boolean DEBUG_MODE = true;  // 🔥 KEPT COMMENTED
     }
-    private static final boolean DEBUG_MODE = true;
-    private void handleMessage(String targetUid) {
+    //private static final boolean DEBUG_MODE = true;
+     void handleMessage(String targetUid) {
         Log.d(TAG, "🚀 MESSAGE TAP - UID: " + (mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "NULL"));
 
         if (mAuth.getCurrentUser() == null || getContext() == null) {
@@ -284,11 +277,11 @@ public class FeedFragment extends Fragment {
         }
 
         // 🔥🔥 DEBUG BYPASS - REMOVES PAYMENT CHECK IN DEBUG BUILDS 🔥🔥
-        if (DEBUG_MODE) {
-           Log.d(TAG, "🔓 DEBUG MODE ACTIVE - FREE CHAT ACCESS");
-            openChat(targetUid);
-            return;
-       }
+        //if (DEBUG_MODE) {
+        //   Log.d(TAG, "🔓 DEBUG MODE ACTIVE - FREE CHAT ACCESS");
+        //   openChat(targetUid);
+        //   return;
+        // }
 
         BillingManager billingManager = BillingManager.getInstance(getContext());
         billingManager.checkSubscriptionStatus(isSubscribed -> {
@@ -381,8 +374,6 @@ public class FeedFragment extends Fragment {
         Toast.makeText(getContext(), "Opening chat...", Toast.LENGTH_SHORT).show();
     }
 
-
-
     private void updateLikesCount(String targetUid, int increment) {
         db.collection("users").document(targetUid)
                 .update("likesCount", com.google.firebase.firestore.FieldValue.increment(increment))
@@ -406,8 +397,7 @@ public class FeedFragment extends Fragment {
 
     private void showLoading(boolean show) {
         if (progressBar != null) progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
-        if (rvFeed != null) rvFeed.setLayoutManager(show ? null : new LinearLayoutManager(getContext()));
-        if (rvFeed != null) rvFeed.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (viewPagerProfiles != null) viewPagerProfiles.setVisibility(show ? View.GONE : View.VISIBLE);  // 🔥 FIXED
     }
 
     private void updateWelcomeMessage() {

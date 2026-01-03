@@ -1,0 +1,26 @@
+[33mbe36b9f[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m Update gradle.properties
+[33mcfcacb8[m Added Realtime Messaging
+[33m7ed310e[m[33m ([m[1;31morigin/main[m[33m)[m Fixing paywall
+[33mf9beb4a[m Fixing chat thread delete operation
+[33m800a4f9[m Fixing paywall for inbox screen
+[33m149eaf0[m fixed chat status
+[33m3b06111[m Adding messages behind the paywall
+[33m83ba57e[m Adding chat behind purchase layer
+[33mb7a95cf[m Stable
+[33m9f0a23f[m Adding messages button to feed screen
+[33m321954e[m Added realtime messages feature
+[33ma4ff635[m Added select and delete feature
+[33mf107eeb[m Added delete chat thread feature
+[33m563d8c6[m New features
+[33m5d8636b[m Adding proper settings UI
+[33m9b8c256[m Adding inbox, lastseen feature
+[33mb0facd8[m Added chat support
+[33mac5ed9e[m Adding matches support
+[33m61760f3[m Added Likes Feature
+[33mcf0081e[m Fixing edit proflie page
+[33m062f1ea[m Adding feed feature
+[33m9eac9f4[m adding login activity
+[33m7718ec7[m Adding more framework structure
+[33m01f573f[m Added subscription logic
+[33m7a077f5[m Added Billing Lib
+[33m9efc0fa[m[33m ([m[1;31morigin/master[m[33m)[m Initial project setup

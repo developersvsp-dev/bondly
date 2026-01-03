@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F8F9FA"
+    android:padding="24dp">
+
+    <!-- 🔥 LARGE PROFILE IMAGE (Center) -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/ivProfile"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="40dp"
+        app:shapeAppearanceOverlay="@style/CircleImage"
+        android:src="@drawable/ic_person"
+        android:scaleType="centerCrop" />
+
+    <!-- 🔥 INFO BELOW IMAGE -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="24dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/tvGender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="18sp"
+            android:textColor="#4CAF50"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvBio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textSize="16sp"
+            android:textColor="#666666"
+            android:gravity="center"
+            android:maxLines="3"
+            android:lineSpacingExtra="4dp" />
+
+    </LinearLayout>
+
+    <!-- 🔥 BUTTONS (Bottom) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="40dp"
+        android:gravity="center">
+
+        <ImageButton
+            android:id="@+id/ibLike"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginEnd="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_heart_outline"
+            android:scaleType="centerInside"
+            android:contentDescription="Like"
+            app:tint="#E91E63" />
+
+        <ImageButton
+            android:id="@+id/ibMessage"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/circle_button_blue"
+            android:src="@drawable/ic_message"
+            android:scaleType="centerInside"
+            android:contentDescription="Message" />
+
+    </LinearLayout>
+
+</LinearLayout>
