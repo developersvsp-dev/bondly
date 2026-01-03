@@ -18,6 +18,7 @@ public class ProfilePagerAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         Profile profile = profiles.get(position);
         return ProfileItemFragment.newInstance(profile);
+        // 🔥 REMOVED: fragment.setFullScreenHeight() - Not needed
     }
 
     @Override
@@ -26,7 +27,7 @@ public class ProfilePagerAdapter extends FragmentStateAdapter {
     }
 
     public void setProfiles(List<Profile> newProfiles) {
-        this.profiles = newProfiles;
+        this.profiles = new ArrayList<>(newProfiles);  // Defensive copy
         notifyDataSetChanged();
     }
 }
