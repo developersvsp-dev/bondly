@@ -12,14 +12,12 @@ import android.view.View;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import androidx.appcompat.widget.Toolbar;
-
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.messaging.FirebaseMessaging;
 import java.util.HashMap;
 import java.util.Map;
-import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -36,11 +34,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-// 🔥 FIX APP CHECK ERROR - Add BEFORE other Firebase calls
-//        FirebaseApp.initializeApp(this);
-//        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
-//                PlayIntegrityAppCheckProviderFactory.getInstance()
-//        );
         mAuth = FirebaseAuth.getInstance();
         splashView = findViewById(R.id.splash_view);
 
@@ -98,11 +91,11 @@ public class MainActivity extends AppCompatActivity {
 
             if (id == R.id.nav_feed) {
                 fragment = new FeedFragment();
-                showHeader("Lifemate"); // 🔥 SHOW HEADER ONLY ON FEED
+                showHeader("Lifemate");
             }
             else if (id == R.id.nav_inbox) {
                 fragment = new InboxFragment();
-                hideHeader(); // 🔥 HIDE ON INBOX
+                hideHeader();
             }
             else if (id == R.id.nav_profile) {
                 fragment = new ProfileFragment();
@@ -123,9 +116,9 @@ public class MainActivity extends AppCompatActivity {
         showHeader("Lifemate");
         isNavigationSetup = true;
         Log.d(TAG, "✅ APP READY on FEED - User ID: " + mAuth.getCurrentUser().getUid());
-        // 🔥 ADD FCM TOKEN REGISTRATION HERE
         registerFCMToken();
     }
+
     private void registerFCMToken() {
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -143,13 +136,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
     private void loadFragment(Fragment fragment) {
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, fragment);
         transaction.commit();
     }
 
-    // 🔥 SHOW HEADER (FEED SCREEN ONLY)
     private void showHeader(String title) {
         if (appbarHeader != null) {
             appbarHeader.setVisibility(View.VISIBLE);
@@ -160,7 +153,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // 🔥 HIDE HEADER (All other screens)
     private void hideHeader() {
         if (appbarHeader != null) {
             appbarHeader.setVisibility(View.GONE);
@@ -177,7 +169,6 @@ public class MainActivity extends AppCompatActivity {
         if (bottomNavigation != null) bottomNavigation.setVisibility(View.VISIBLE);
     }
 
-    // 🔥 FOR CHATFRAGMENT & INBOX - HIDE/SHOW BOTTOM NAV
     public void hideBottomNavigation() {
         if (bottomNavigation != null) {
             bottomNavigation.setVisibility(View.GONE);

@@ -6,7 +6,7 @@
     android:orientation="vertical"
     android:background="#FFFFFF">
 
-    <!-- 🔥 PURPLE WHATSAPP SETTINGS HEADER -->
+    <!-- 🔥 PURPLE HEADER -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -25,151 +25,144 @@
             android:textSize="20sp"
             android:textColor="#FFFFFF"
             android:layout_gravity="center_vertical" />
-
     </LinearLayout>
 
-    <!-- 🔥 SETTINGS CARDS CONTAINER -->
+    <!-- 🔥 CONTENT (FLEXIBLE HEIGHT) -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginTop="24dp"
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
         android:orientation="vertical">
 
-        <!-- 🔥 MATCHES BUTTON -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- ✅ MATCHES BUTTON -->
+        <LinearLayout
+            android:id="@+id/btn_matches"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            android:orientation="horizontal"
+            android:padding="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:elevation="2dp">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="16dp"
+                android:src="@android:drawable/ic_dialog_info"
+                android:contentDescription="Matches"
+                android:background="#F0F0F0"
+                android:scaleType="centerCrop" />
 
             <LinearLayout
-                android:id="@+id/btn_matches"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="20dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-                <!-- Icon -->
-                <ImageView
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="16dp"
-                    android:src="@drawable/ic_person_placeholder"
-                    android:contentDescription="Matches"
-                    app:shapeAppearanceOverlay="@style/CircleImage"
-                    android:background="#F0F0F0"
-                    android:scaleType="centerCrop" />
-
-                <!-- Text Content -->
-                <LinearLayout
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:text="Matches"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#111B21" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Matches"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#111B21" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="View your matches"
-                        android:textSize="14sp"
-                        android:textColor="#5C6368"
-                        android:layout_marginTop="4dp" />
-
-                </LinearLayout>
-
-                <!-- Arrow -->
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_forward_arrow"
-                    android:layout_gravity="center_vertical"
-                    android:tint="#5C6368" />
-
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="View your matches"
+                    android:textSize="14sp"
+                    android:textColor="#5C6368"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
 
-        </com.google.android.material.card.MaterialCardView>
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_input_add"
+                android:layout_gravity="center_vertical"
+                android:tint="#5C6368" />
+        </LinearLayout>
 
-        <!-- 🔥 PRIVACY POLICY BUTTON (NEW) -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- ✅ PRIVACY BUTTON -->
+        <LinearLayout
+            android:id="@+id/btn_privacy_policy"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            android:orientation="horizontal"
+            android:padding="20dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:elevation="2dp">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="16dp"
+                android:src="@android:drawable/ic_dialog_info"
+                android:tint="#FF5722"
+                android:contentDescription="Privacy Policy"
+                android:background="#FFF3E0"
+                android:scaleType="centerCrop" />
 
             <LinearLayout
-                android:id="@+id/btn_privacy_policy"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="20dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-                <!-- Privacy Icon (use existing person icon or create simple shield) -->
-                <ImageView
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="16dp"
-                    android:src="@drawable/ic_person_placeholder"
-                    android:tint="#FF5722"
-                    android:contentDescription="Privacy Policy"
-                    app:shapeAppearanceOverlay="@style/CircleImage"
-                    android:background="#FFF3E0"
-                    android:scaleType="centerCrop" />
-
-                <!-- Text Content -->
-                <LinearLayout
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:text="Privacy Policy"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#111B21" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Privacy Policy"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#111B21" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="How we protect your data"
-                        android:textSize="14sp"
-                        android:textColor="#5C6368"
-                        android:layout_marginTop="4dp" />
-
-                </LinearLayout>
-
-                <!-- Arrow -->
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_forward_arrow"
-                    android:layout_gravity="center_vertical"
-                    android:tint="#5C6368" />
-
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="How we protect your data"
+                    android:textSize="14sp"
+                    android:textColor="#5C6368"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
 
-        </com.google.android.material.card.MaterialCardView>
-
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_input_add"
+                android:layout_gravity="center_vertical"
+                android:tint="#FF5722" />
+        </LinearLayout>
     </LinearLayout>
+
+    <!-- 🔥 RED FAB SPACER -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="80dp" />
+
+    <!-- ⭐ RED REPORT BUTTON -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/reportFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_dialog_alert"
+        app:fabSize="mini"
+        app:tint="#FF4444"
+        app:backgroundTint="#FFFFFF"
+        android:contentDescription="Report safety issue" />
 
 </LinearLayout>

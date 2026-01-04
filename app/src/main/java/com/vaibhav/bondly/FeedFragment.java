@@ -236,6 +236,7 @@ public class FeedFragment extends Fragment {
         likeData.put("likedId", targetUid);
         likeData.put("timestamp", Timestamp.now());
         likeData.put("isLike", isLike);
+         likeData.put("viewedByLikedUser", false);  // 🔥 ADD THIS LINE!
 
         if (isLike) {
             db.collection("likes")
@@ -417,4 +418,5 @@ public class FeedFragment extends Fragment {
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Welcome message failed", e));
     }
+
 }
