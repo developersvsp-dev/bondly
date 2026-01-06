@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private Toolbar toolbar;
 
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,25 +39,32 @@ public class MainActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         splashView = findViewById(R.id.splash_view);
 
-        // 🔥 SPLASH LOGIC FROM SplashActivity - 1 SECOND DELAY
+        // 🔥 HIDE BOTTOM NAV IMMEDIATELY - NO FLASH
+        bottomNavigation = findViewById(R.id.bottom_navigation);
+        if (bottomNavigation != null) {
+            bottomNavigation.setVisibility(View.GONE);
+        }
+
+        showSplash(); // Shows splash_view
+
+        // Your existing 1-sec auth check
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             FirebaseUser user = mAuth.getCurrentUser();
 
             if (user != null) {
-                // User already logged in → show main app
                 Log.d(TAG, "✅ User already logged in: " + user.getUid());
                 hideSplash();
-                setupBottomNavigation();
+                setupBottomNavigation(); // This will SHOW bottom nav
             } else {
-                // User not logged in → go to RegisterActivity (same as old Splash)
                 Log.d(TAG, "❌ No user - redirect to Register");
                 Intent intent = new Intent(MainActivity.this, RegisterActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 finish();
             }
-        }, 1000); // 1 sec "splash" effect using your splash_view
+        }, 1000);
     }
+
 
 
     private void checkAuthImmediately() {
