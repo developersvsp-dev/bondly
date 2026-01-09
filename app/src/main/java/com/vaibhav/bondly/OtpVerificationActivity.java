@@ -52,6 +52,9 @@ public class OtpVerificationActivity extends AppCompatActivity {
         btnVerifyOtp.setOnClickListener(v -> {
             String otp = etOtp.getText().toString().trim();
             if (otp.length() == 6) {
+                // 🔥 LOADING STATE - DISABLE + SHOW PROCESSING
+                btnVerifyOtp.setEnabled(false);
+                btnVerifyOtp.setText("Verifying...");
                 verifyOTP(otp);
             } else {
                 Toast.makeText(this, "Enter valid 6-digit OTP", Toast.LENGTH_SHORT).show();
@@ -63,6 +66,9 @@ public class OtpVerificationActivity extends AppCompatActivity {
         PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, otp);
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
+                    // 🔥 RESET BUTTON STATE
+                    btnVerifyOtp.setEnabled(true);
+                    btnVerifyOtp.setText("Verify OTP");
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
                         if (user != null) {

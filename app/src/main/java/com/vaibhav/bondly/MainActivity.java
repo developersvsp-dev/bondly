@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (id == R.id.nav_feed) {
                 fragment = new FeedFragment();
-                showHeader("Lifemate");
+                showHeader("Bondly");
             }
             else if (id == R.id.nav_inbox) {
                 fragment = new InboxFragment();
@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
         // 🔥 START WITH FEED + HEADER
         bottomNavigation.setSelectedItemId(R.id.nav_feed);
         loadFragment(new FeedFragment());
-        showHeader("Lifemate");
+        showHeader("Bondly");
         isNavigationSetup = true;
         Log.d(TAG, "✅ APP READY on FEED - User ID: " + mAuth.getCurrentUser().getUid());
         registerFCMToken();

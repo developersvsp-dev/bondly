@@ -53,6 +53,9 @@ public class LoginActivity extends AppCompatActivity {
                 Toast.makeText(this, "Enter valid phone number", Toast.LENGTH_SHORT).show();
                 return;
             }
+            // 🔥 LOADING STATE - DISABLE + SHOW PROCESSING
+            btnSendOTP.setEnabled(false);
+            btnSendOTP.setText("Sending OTP...");
             startPhoneNumberVerification(phoneNumber);
         });
 
@@ -74,12 +77,18 @@ public class LoginActivity extends AppCompatActivity {
 
                     @Override
                     public void onVerificationFailed(@NonNull FirebaseException e) {
+                        // 🔥 RESET BUTTON ON ERROR
+                        btnSendOTP.setEnabled(true);
+                        btnSendOTP.setText("Send OTP");
                         Toast.makeText(LoginActivity.this, "Verification failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
 
                     @Override
                     public void onCodeSent(@NonNull String verificationId, @NonNull PhoneAuthProvider.ForceResendingToken token) {
                         super.onCodeSent(verificationId, token);
+                        // 🔥 RESET BUTTON AFTER SUCCESS
+                        btnSendOTP.setEnabled(true);
+                        btnSendOTP.setText("Send OTP");
                         Intent intent = new Intent(LoginActivity.this, OtpVerificationActivity.class);
                         intent.putExtra("verificationId", verificationId);
                         startActivity(intent);
@@ -90,6 +99,9 @@ public class LoginActivity extends AppCompatActivity {
 
     private void signInWithPhoneAuthCredential(PhoneAuthCredential credential) {
         mAuth.signInWithCredential(credential).addOnCompleteListener(task -> {
+            // 🔥 RESET BUTTON STATE
+            btnSendOTP.setEnabled(true);
+            btnSendOTP.setText("Send OTP");
             if (task.isSuccessful()) {
                 Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show();
                 goToMainApp();

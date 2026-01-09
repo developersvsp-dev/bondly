@@ -60,7 +60,7 @@
                         android:layout_marginBottom="16dp"
                         android:scaleType="centerCrop"
                         app:shapeAppearanceOverlay="@style/CircleImage"
-                        app:strokeColor="@color/primary_color"
+                        app:strokeColor="#5CE1E6"
                         app:strokeWidth="3dp" />
 
                     <TextView
@@ -95,7 +95,7 @@
                         android:layout_height="wrap_content"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@color/primary_color"
+                        android:textColor="#2196F3"
                         android:layout_marginBottom="8dp"
                         android:visibility="gone" />
 
@@ -115,6 +115,7 @@
                 android:layout_height="56dp"
                 android:text="Edit Profile"
                 android:textStyle="bold"
+                android:backgroundTint="#5CE1E6"
                 android:layout_marginBottom="12dp"
                 app:cornerRadius="12dp" />
 
@@ -125,7 +126,7 @@
                 android:text="Logout"
                 android:textStyle="bold"
                 android:textColor="@android:color/white"
-                android:backgroundTint="#F44336"
+                android:backgroundTint="#FF6F61"
                 app:cornerRadius="12dp" />
 
         </LinearLayout>
@@ -154,12 +155,14 @@
 
                     <com.google.android.material.imageview.ShapeableImageView
                         android:id="@+id/ivProfilePicEdit"
-                        android:layout_width="100dp"
-                        android:layout_height="100dp"
+                        android:layout_width="110dp"
+                        android:layout_height="110dp"
                         android:scaleType="centerCrop"
-                        app:shapeAppearanceOverlay="@style/CircleImage"
-                        app:strokeColor="@color/primary_color"
-                        app:strokeWidth="3dp" />
+                        android:elevation="8dp"
+                        app:shapeAppearanceOverlay="@style/CircleImagePremium"
+                        app:strokeColor="@color/profile_gradient_stroke"
+                        app:strokeWidth="4dp"
+                        app:background="@drawable/profile_gradient_bg" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -174,6 +177,7 @@
                         android:layout_height="40dp"
                         android:layout_marginTop="8dp"
                         android:text="Change Photo"
+                        app:backgroundTint="#5CE1E6"
                         android:textSize="14sp"
                         app:cornerRadius="20dp" />
 
@@ -260,6 +264,7 @@
                 android:layout_height="56dp"
                 android:text="Save Profile"
                 android:textStyle="bold"
+                app:backgroundTint="#FF6F61"
                 app:cornerRadius="12dp" />
 
         </LinearLayout>

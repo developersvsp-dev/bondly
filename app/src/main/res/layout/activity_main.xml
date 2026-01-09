@@ -16,10 +16,10 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/green_whatsapp"
+            android:background="#5CE1E6"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             app:titleTextColor="@android:color/white"
-            app:title="Lifemate" />
+            app:title="Bondly" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Fragment container -->

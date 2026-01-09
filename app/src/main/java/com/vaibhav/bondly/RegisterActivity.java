@@ -64,7 +64,9 @@ public class RegisterActivity extends AppCompatActivity {
                 Toast.makeText(RegisterActivity.this, "Please select your gender", Toast.LENGTH_SHORT).show();
                 return;
             }
-
+// 🔥 LOADING STATE - DISABLE + SHOW PROGRESS
+            btnSendOTP.setEnabled(false);
+            btnSendOTP.setText("Sending OTP...");
             // Start phone number verification
             startPhoneNumberVerification(phoneNumber);
         });
@@ -109,6 +111,10 @@ public class RegisterActivity extends AppCompatActivity {
                             @Override
                             public void onCodeSent(@NonNull String verificationId, @NonNull PhoneAuthProvider.ForceResendingToken token) {
                                 super.onCodeSent(verificationId, token);
+
+                                // 🔥 RESET BUTTON AFTER SUCCESS
+                                btnSendOTP.setEnabled(true);
+                                btnSendOTP.setText("Send OTP");
                                 // 🚀 PASS ALL DATA TO OTP SCREEN
                                 Intent intent = new Intent(RegisterActivity.this, OtpVerificationActivity.class);
                                 intent.putExtra("verificationId", verificationId);

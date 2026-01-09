@@ -6,4 +6,6 @@
     <color name="primary_color">#2196F3</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="green_whatsapp">#443168</color>
+    <color name="filter_inactive">#BDBDBD</color>
+    <color name="filter_inactive_teal">#B2EBF2</color>
 </resources>
